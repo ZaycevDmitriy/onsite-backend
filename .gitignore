@@ -1,0 +1,47 @@
+# dependencies
+node_modules/
+
+# build
+dist/
+
+# debug
+npm-debug.*
+
+# macOS
+.DS_Store
+
+# keys / secrets
+*.pem
+*.key
+*.p12
+.env*.local
+.env
+.env.*
+!.env.example
+
+# typescript
+*.tsbuildinfo
+
+# test coverage
+coverage/
+
+# IDE
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/launch.json
+.idea/
+
+# temp
+docs/
+
+# ai
+.claude/
+.agents/
+.mcp.json
+CLAUDE.md
+.codex/
+.ai-factory/
+.opencode/
+.ai-factory.json
+AGENTS.md
