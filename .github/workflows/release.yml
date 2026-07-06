@@ -48,10 +48,10 @@ jobs:
             echo "version=$(cat .release-version)" >> "$GITHUB_OUTPUT"
           fi
 
-      # docker/login-action@v3.3.0
+      # docker/login-action@v3.7.0
       - name: Логин в GHCR
         if: steps.version.outputs.version != ''
-        uses: docker/login-action@9780b0c442fbb1712d317f54a1f8d70bafbfff29
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
