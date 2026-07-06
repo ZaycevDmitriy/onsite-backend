@@ -1,3 +1,10 @@
+## [1.0.1](https://github.com/ZaycevDmitriy/onsite-backend/compare/v1.0.0...v1.0.1) (2026-07-06)
+
+
+### Bug Fixes
+
+* таймауты пула pg, симметричный upsert сида и seed-тесты по фиксированным UUID ([970de07](https://github.com/ZaycevDmitriy/onsite-backend/commit/970de07a9e7e378d5f93078b568bdbb4fdd3c7a7))
+
 # 1.0.0 (2026-07-06)
 
 
