@@ -185,6 +185,8 @@ export const runSeed = async (db: NodePgDatabase, logger: Logger): Promise<void>
           description: template.description,
           client,
           address: location.address,
+          latitude: location.latitude,
+          longitude: location.longitude,
           assignedTo,
           ...times,
         },
