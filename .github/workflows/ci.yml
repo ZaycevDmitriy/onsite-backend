@@ -1,0 +1,67 @@
+# CI: lint, typecheck, build, тесты против postgres:16, валидация OpenAPI.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: onsite
+          POSTGRES_PASSWORD: onsite
+          POSTGRES_DB: onsite
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U onsite -d onsite"
+          --health-interval 3s
+          --health-timeout 3s
+          --health-retries 20
+
+    env:
+      DATABASE_URL: postgres://onsite:onsite@localhost:5432/onsite
+
+    steps:
+      # actions/checkout@v4.2.2
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      # actions/setup-node@v4.1.0
+      - uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Установка зависимостей
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build (tsc + tsc-alias)
+        run: npm run build
+
+      # Проверка артефакта сборки: алиасы @/* переписаны, модуль импортируется.
+      - name: Проверка dist
+        run: node --input-type=module -e "await import('./dist/app.js'); console.log('dist ok');"
+
+      - name: Миграции
+        run: npm run migrate
+
+      - name: Тесты с покрытием
+        run: npm run test:coverage
+
+      - name: Валидация OpenAPI
+        run: npm run openapi:validate

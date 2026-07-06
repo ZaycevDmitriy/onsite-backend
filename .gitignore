@@ -46,3 +46,6 @@ CLAUDE.md
 .opencode/
 .ai-factory.json
 AGENTS.md
+
+# semantic-release
+.release-version
