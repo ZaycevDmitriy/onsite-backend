@@ -36,6 +36,7 @@ coverage/
 docs/
 
 # ai
+skills-lock.json
 .claude/
 .agents/
 .mcp.json
