@@ -6,6 +6,9 @@ export const ErrorCodeEnum = {
   Forbidden: 'forbidden',
   Conflict: 'conflict',
   InvalidTransition: 'invalid_transition',
+  InvalidCredentials: 'invalid_credentials',
+  TooManyAttempts: 'too_many_attempts',
+  EmailTaken: 'email_taken',
   InternalError: 'internal_error',
 } as const;
 export type ErrorCodeEnum = (typeof ErrorCodeEnum)[keyof typeof ErrorCodeEnum];

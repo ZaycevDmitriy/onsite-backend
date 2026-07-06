@@ -9,6 +9,11 @@ export interface IAppConfig {
   port: number;
   logLevel: LogLevelEnum;
   databaseUrl: string;
+  // PEM-ключи RS256, декодированные из base64-значений env.
+  jwtPrivateKey: string;
+  jwtPublicKey: string;
+  accessTokenTtlSec: number;
+  refreshTokenTtlSec: number;
 }
 
 // Ошибка конфигурации: процесс обязан упасть при старте, значения env в сообщение не попадают.
@@ -43,5 +48,23 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): IAppConfig => 
     port: parsed.PORT,
     logLevel: parsed.LOG_LEVEL,
     databaseUrl: parsed.DATABASE_URL,
+    jwtPrivateKey: decodePemKey('JWT_PRIVATE_KEY', parsed.JWT_PRIVATE_KEY),
+    jwtPublicKey: decodePemKey('JWT_PUBLIC_KEY', parsed.JWT_PUBLIC_KEY),
+    accessTokenTtlSec: parsed.ACCESS_TOKEN_TTL_SEC,
+    refreshTokenTtlSec: parsed.REFRESH_TOKEN_TTL_SEC,
   };
+};
+
+/**
+ * Декодирует base64-значение env в PEM-ключ.
+ * В сообщении об ошибке — только имя переменной, без содержимого.
+ */
+const decodePemKey = (name: string, base64Value: string): string => {
+  const pem = Buffer.from(base64Value, 'base64').toString('utf8');
+
+  if (!pem.includes('-----BEGIN') || !pem.includes('KEY-----')) {
+    throw new ConfigError([`${name}: ожидается base64-кодированный PEM-ключ`]);
+  }
+
+  return pem;
 };

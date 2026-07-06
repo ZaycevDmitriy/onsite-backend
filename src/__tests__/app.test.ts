@@ -1,19 +1,13 @@
 import { Type } from 'typebox';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
+import { makeTestConfig } from '@/__tests__/helpers/test-config.js';
 import { buildApp } from '@/app.js';
 import { AppError, ErrorCodeEnum } from '@/shared/errors/index.js';
 
-import type { IAppConfig } from '@/shared/config/index.js';
 import type { FastifyInstance } from 'fastify';
 
-const testConfig: IAppConfig = {
-  nodeEnv: 'test',
-  host: '127.0.0.1',
-  port: 0,
-  logLevel: 'fatal',
-  databaseUrl: 'postgres://unused',
-};
+const testConfig = makeTestConfig('postgres://unused');
 
 describe('buildApp: конверт ошибок', () => {
   let app: FastifyInstance;

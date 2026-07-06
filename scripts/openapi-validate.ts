@@ -4,10 +4,13 @@ import { pino } from 'pino';
 import { buildApp } from '@/app.js';
 import { loadConfig } from '@/shared/config/index.js';
 
+import { makeEphemeralJwtEnv } from './ephemeral-jwt-env.js';
+
 // Валидация OpenAPI-спеки против схемы OpenAPI 3.1 (шаг CI).
 const logger = pino({ level: process.env.LOG_LEVEL ?? 'info' });
 
 const config = loadConfig({
+  ...makeEphemeralJwtEnv(),
   ...process.env,
   DATABASE_URL: process.env.DATABASE_URL ?? 'postgres://unused:unused@localhost:5432/unused',
   LOG_LEVEL: 'fatal',

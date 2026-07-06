@@ -43,6 +43,13 @@ export const envSchema = Type.Object({
     { default: LogLevelEnum.Info },
   ),
   DATABASE_URL: Type.String({ minLength: 1 }),
+  // Ключи RS256 для JWT: base64-кодированный PEM (NFR-05, секреты вне git).
+  JWT_PRIVATE_KEY: Type.String({ minLength: 1 }),
+  JWT_PUBLIC_KEY: Type.String({ minLength: 1 }),
+  // TTL access-токена в секундах (15 минут по умолчанию).
+  ACCESS_TOKEN_TTL_SEC: Type.Number({ minimum: 1, default: 900 }),
+  // TTL refresh-токена в секундах (30 дней по умолчанию).
+  REFRESH_TOKEN_TTL_SEC: Type.Number({ minimum: 1, default: 2592000 }),
 });
 
 export type IEnv = Static<typeof envSchema>;

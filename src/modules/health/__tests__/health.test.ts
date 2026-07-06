@@ -1,20 +1,14 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
+import { makeTestConfig } from '@/__tests__/helpers/test-config.js';
 import { buildApp } from '@/app.js';
 
-import type { IAppConfig } from '@/shared/config/index.js';
 import type { FastifyInstance } from 'fastify';
 
 // Интеграционные тесты против реальной БД: DATABASE_URL задаёт CI/локальное окружение.
 const databaseUrl = process.env.DATABASE_URL;
 
-const makeConfig = (url: string): IAppConfig => ({
-  nodeEnv: 'test',
-  host: '127.0.0.1',
-  port: 0,
-  logLevel: 'fatal',
-  databaseUrl: url,
-});
+const makeConfig = makeTestConfig;
 
 describe.runIf(databaseUrl)('/v1/health с доступной БД', () => {
   let app: FastifyInstance;

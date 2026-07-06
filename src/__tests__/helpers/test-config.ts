@@ -1,0 +1,24 @@
+import { generateKeyPairSync } from 'node:crypto';
+
+import type { IAppConfig } from '@/shared/config/index.js';
+
+// Тестовая пара RS256: генерируется один раз на процесс, в репозитории ключей нет.
+const { privateKey, publicKey } = generateKeyPairSync('rsa', {
+  modulusLength: 2048,
+  privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
+  publicKeyEncoding: { type: 'spki', format: 'pem' },
+});
+
+/** Собирает IAppConfig для интеграционных тестов с тестовыми JWT-ключами. */
+export const makeTestConfig = (databaseUrl: string, overrides: Partial<IAppConfig> = {}): IAppConfig => ({
+  nodeEnv: 'test',
+  host: '127.0.0.1',
+  port: 0,
+  logLevel: 'fatal',
+  databaseUrl,
+  jwtPrivateKey: privateKey,
+  jwtPublicKey: publicKey,
+  accessTokenTtlSec: 900,
+  refreshTokenTtlSec: 2592000,
+  ...overrides,
+});
