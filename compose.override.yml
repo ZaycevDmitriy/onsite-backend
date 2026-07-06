@@ -1,0 +1,23 @@
+# Dev-override (подхватывается docker compose автоматически):
+# исходники монтируются, api перезапускается tsx watch, порты БД/MinIO наружу.
+services:
+  api:
+    build:
+      target: build
+    command: npx tsx watch src/main.ts
+    environment:
+      NODE_ENV: development
+      LOG_LEVEL: ${LOG_LEVEL:-debug}
+    volumes:
+      - ./src:/app/src
+      - ./scripts:/app/scripts
+      - ./drizzle:/app/drizzle
+
+  postgres:
+    ports:
+      - '5432:5432'
+
+  minio:
+    ports:
+      - '9000:9000'
+      - '9001:9001'
