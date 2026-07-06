@@ -17,6 +17,15 @@ export const openapiPlugin = fp(
           version: '0.0.0',
         },
         servers: [{ url: '/' }],
+        components: {
+          securitySchemes: {
+            bearerAuth: {
+              type: 'http',
+              scheme: 'bearer',
+              bearerFormat: 'JWT',
+            },
+          },
+        },
       },
     });
 

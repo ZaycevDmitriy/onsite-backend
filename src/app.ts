@@ -1,10 +1,12 @@
 import helmet from '@fastify/helmet';
 import Fastify from 'fastify';
 
+import { authRoutes, createAuthService } from '@/modules/auth/index.js';
 import { healthRoutes } from '@/modules/health/index.js';
+import { getActiveUser, usersRoutes } from '@/modules/users/index.js';
 import { dbPlugin } from '@/shared/db/index.js';
 import { errorHandler, notFoundHandler } from '@/shared/errors/index.js';
-import { buildLoggerOptions, genReqId, openapiPlugin } from '@/shared/plugins/index.js';
+import { authPlugin, buildLoggerOptions, genReqId, openapiPlugin } from '@/shared/plugins/index.js';
 
 import type { IAppConfig } from '@/shared/config/index.js';
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
@@ -28,11 +30,30 @@ export const buildApp = async (config: IAppConfig): Promise<FastifyInstance> => 
   await app.register(dbPlugin, { databaseUrl: config.databaseUrl });
   await app.register(openapiPlugin);
 
+  // getActiveUser инъецируется из публичного API users: shared не импортирует modules.
+  await app.register(authPlugin, {
+    privateKey: config.jwtPrivateKey,
+    publicKey: config.jwtPublicKey,
+    accessTokenTtlSec: config.accessTokenTtlSec,
+    getActiveUser: (userId) => getActiveUser(app.db, userId),
+  });
+
   app.setErrorHandler(errorHandler);
   app.setNotFoundHandler(notFoundHandler);
 
+  const authService = createAuthService({
+    db: app.db,
+    refreshTokenTtlSec: config.refreshTokenTtlSec,
+    signAccessToken: (payload) => app.jwt.sign(payload),
+  });
+
   // Модули (по мере появления фаз добавляются сюда).
   await app.register(healthRoutes);
+  await app.register(authRoutes, { authService });
+  // Отзыв сессий при сбросе пароля users получает инъекцией: цикла users ↔ auth нет.
+  await app.register(usersRoutes, {
+    revokeAllUserSessions: (userId, logger) => authService.revokeAllUserSessions(userId, logger),
+  });
 
   return app;
 };

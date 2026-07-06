@@ -55,13 +55,15 @@ describe('loadConfig', () => {
   });
 
   it('падает без DATABASE_URL', () => {
-    const { DATABASE_URL: _omitted, ...withoutDb } = validEnv;
+    const withoutDb: Record<string, string> = { ...validEnv };
+    delete withoutDb['DATABASE_URL'];
 
     expect(() => loadConfig(withoutDb)).toThrow(ConfigError);
   });
 
   it('падает без JWT-ключей', () => {
-    const { JWT_PRIVATE_KEY: _omitted, ...withoutKey } = validEnv;
+    const withoutKey: Record<string, string> = { ...validEnv };
+    delete withoutKey['JWT_PRIVATE_KEY'];
 
     expect(() => loadConfig(withoutKey)).toThrow(ConfigError);
   });
