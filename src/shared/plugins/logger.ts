@@ -2,6 +2,9 @@ import type { IAppConfig } from '@/shared/config/index.js';
 import type { FastifyServerOptions } from 'fastify';
 import type { PinoLoggerOptions } from 'fastify/types/logger.js';
 
+// Опции логгера без undefined (совместимость с exactOptionalPropertyTypes).
+export type ILoggerOptions = Exclude<FastifyServerOptions['logger'], undefined>;
+
 // Поля, которые никогда не должны попасть в логи (NFR-07: секреты и авторизация).
 const REDACT_PATHS = [
   'req.headers.authorization',
@@ -16,7 +19,7 @@ const REDACT_PATHS = [
  */
 export const buildLoggerOptions = (
   config: Pick<IAppConfig, 'nodeEnv' | 'logLevel'>,
-): FastifyServerOptions['logger'] => {
+): ILoggerOptions => {
   const base: PinoLoggerOptions = {
     level: config.logLevel,
     redact: { paths: REDACT_PATHS, censor: '[redacted]' },

@@ -1,0 +1,97 @@
+import { Type } from 'typebox';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+
+import { buildApp } from '@/app.js';
+import { AppError, ErrorCodeEnum } from '@/shared/errors/index.js';
+
+import type { IAppConfig } from '@/shared/config/index.js';
+import type { FastifyInstance } from 'fastify';
+
+const testConfig: IAppConfig = {
+  nodeEnv: 'test',
+  host: '127.0.0.1',
+  port: 0,
+  logLevel: 'fatal',
+  databaseUrl: 'postgres://unused',
+};
+
+describe('buildApp: конверт ошибок', () => {
+  let app: FastifyInstance;
+
+  beforeAll(async () => {
+    app = await buildApp(testConfig);
+
+    // Тестовые роуты для проверки error handler'а.
+    app.post(
+      '/test/echo',
+      { schema: { body: Type.Object({ value: Type.Number() }) } },
+      (request) => request.body,
+    );
+    app.get('/test/app-error', () => {
+      throw new AppError(409, ErrorCodeEnum.InvalidTransition, 'Переход невозможен', {
+        from: 'Done',
+      });
+    });
+    app.get('/test/boom', () => {
+      throw new Error('секретная внутренняя ошибка');
+    });
+    await app.ready();
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  it('невалидное тело → 422 validation_failed', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/test/echo',
+      payload: { value: 'not-a-number' },
+    });
+
+    expect(response.statusCode).toBe(422);
+    const body = response.json<{ code: string; details: unknown[] }>();
+    expect(body.code).toBe('validation_failed');
+    expect(body.details).toBeInstanceOf(Array);
+  });
+
+  it('AppError → статус и код из ошибки', async () => {
+    const response = await app.inject({ method: 'GET', url: '/test/app-error' });
+
+    expect(response.statusCode).toBe(409);
+    expect(response.json()).toEqual({
+      code: 'invalid_transition',
+      message: 'Переход невозможен',
+      details: { from: 'Done' },
+    });
+  });
+
+  it('неожиданная ошибка → 500 без утечки сообщения и stack', async () => {
+    const response = await app.inject({ method: 'GET', url: '/test/boom' });
+
+    expect(response.statusCode).toBe(500);
+    expect(response.json()).toEqual({
+      code: 'internal_error',
+      message: 'Internal server error',
+    });
+    expect(response.body).not.toContain('секретная');
+  });
+
+  it('неизвестный маршрут → 404 not_found конвертом', async () => {
+    const response = await app.inject({ method: 'GET', url: '/nope' });
+
+    expect(response.statusCode).toBe(404);
+    expect(response.json()).toEqual({ code: 'not_found', message: 'Route not found' });
+  });
+
+  it('пробрасывает валидный x-request-id', async () => {
+    const id = '018f2c3a-9c1e-7abc-8def-0123456789ab';
+    const response = await app.inject({
+      method: 'GET',
+      url: '/nope',
+      headers: { 'x-request-id': id },
+    });
+
+    expect(response.statusCode).toBe(404);
+  });
+});
