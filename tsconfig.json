@@ -20,5 +20,11 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src/**/*", "scripts/**/*", "drizzle.config.ts", "vitest.config.ts", "eslint.config.js"]
+  "include": [
+    "src/**/*",
+    "scripts/**/*",
+    "drizzle.config.ts",
+    "vitest.config.ts",
+    "eslint.config.js"
+  ]
 }

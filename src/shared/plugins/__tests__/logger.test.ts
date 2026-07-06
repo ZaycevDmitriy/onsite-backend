@@ -30,8 +30,7 @@ describe('buildLoggerOptions', () => {
 
   it('сериализатор запроса не включает тело и заголовки', () => {
     const options = buildLoggerOptions({ nodeEnv: 'production', logLevel: 'info' });
-    const serializers = (options as { serializers: { req: (r: unknown) => unknown } })
-      .serializers;
+    const serializers = (options as { serializers: { req: (r: unknown) => unknown } }).serializers;
     const serialized = serializers.req({
       method: 'POST',
       url: '/v1/auth/login',

@@ -121,9 +121,7 @@ const buildOrderTimes = (index: number): { scheduledAt: Date; slotStart: Date; s
   // Даты — сегодня UTC: демо-заявки всегда «на сегодня»; upsert перезаписывает при повторе.
   const today = new Date();
   const atMinutes = (minutes: number): Date =>
-    new Date(
-      Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate(), 0, minutes),
-    );
+    new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate(), 0, minutes));
 
   return {
     scheduledAt: atMinutes(startMinutes),

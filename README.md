@@ -34,27 +34,27 @@ npm run dev
 
 ## Команды
 
-| Команда | Назначение |
-|---------|-----------|
-| `npm run dev` | Запуск с hot-reload (tsx watch) |
-| `npm run build` | Сборка в `dist/` (tsc + tsc-alias) |
-| `npm run typecheck` | Проверка типов |
-| `npm run lint` | ESLint |
-| `npm test` | Тесты (vitest); интеграционные требуют `DATABASE_URL` |
-| `npm run test:coverage` | Тесты с покрытием (v8) |
-| `npm run migrate` | Применить миграции (только вперёд) |
-| `npm run seed` | Идемпотентный сид демо-данных |
-| `npm run db:generate` | Сгенерировать миграцию из Drizzle-схем |
-| `npm run openapi:print` | Напечатать OpenAPI-спеку в stdout |
-| `npm run openapi:validate` | Проверить спеку против схемы OpenAPI 3.1 |
+| Команда                    | Назначение                                            |
+| -------------------------- | ----------------------------------------------------- |
+| `npm run dev`              | Запуск с hot-reload (tsx watch)                       |
+| `npm run build`            | Сборка в `dist/` (tsc + tsc-alias)                    |
+| `npm run typecheck`        | Проверка типов                                        |
+| `npm run lint`             | ESLint                                                |
+| `npm test`                 | Тесты (vitest); интеграционные требуют `DATABASE_URL` |
+| `npm run test:coverage`    | Тесты с покрытием (v8)                                |
+| `npm run migrate`          | Применить миграции (только вперёд)                    |
+| `npm run seed`             | Идемпотентный сид демо-данных                         |
+| `npm run db:generate`      | Сгенерировать миграцию из Drizzle-схем                |
+| `npm run openapi:print`    | Напечатать OpenAPI-спеку в stdout                     |
+| `npm run openapi:validate` | Проверить спеку против схемы OpenAPI 3.1              |
 
 ## Демо-учётки (сид)
 
-| Роль | Email | Пароль |
-|------|-------|--------|
+| Роль      | Email                     | Пароль          |
+| --------- | ------------------------- | --------------- |
 | Диспетчер | `dispatcher@onsite.local` | `dispatcher123` |
-| Техник | `tech1@onsite.local` | `technician123` |
-| Техник | `tech2@onsite.local` | `technician123` |
+| Техник    | `tech1@onsite.local`      | `technician123` |
+| Техник    | `tech2@onsite.local`      | `technician123` |
 
 Сид создаёт 6 демо-заявок, совместимых с mock-данными мобильного клиента. Все данные вымышленные.
 

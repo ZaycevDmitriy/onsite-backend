@@ -21,8 +21,7 @@ export const PushOutboxStatusEnum = {
   Sent: 'sent',
   Failed: 'failed',
 } as const;
-export type PushOutboxStatusEnum =
-  (typeof PushOutboxStatusEnum)[keyof typeof PushOutboxStatusEnum];
+export type PushOutboxStatusEnum = (typeof PushOutboxStatusEnum)[keyof typeof PushOutboxStatusEnum];
 
 // Устройства с Expo-push-токенами.
 export const devices = pgTable(
