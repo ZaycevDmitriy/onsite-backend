@@ -10,8 +10,10 @@ services:
       PORT: 3000
       LOG_LEVEL: ${LOG_LEVEL:-info}
       DATABASE_URL: postgres://onsite:onsite@postgres:5432/onsite
-      JWT_PRIVATE_KEY: ${JWT_PRIVATE_KEY:?сгенерируйте пару npx tsx scripts/generate-jwt-keys.ts}
-      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY:?сгенерируйте пару npx tsx scripts/generate-jwt-keys.ts}
+      # Ключи обязательны: без них api упадёт на старте с ConfigError.
+      # Сгенерировать пару: npx tsx scripts/generate-jwt-keys.ts (значения в .env).
+      JWT_PRIVATE_KEY: ${JWT_PRIVATE_KEY:-}
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY:-}
       ACCESS_TOKEN_TTL_SEC: ${ACCESS_TOKEN_TTL_SEC:-900}
       REFRESH_TOKEN_TTL_SEC: ${REFRESH_TOKEN_TTL_SEC:-2592000}
       S3_ENDPOINT: http://minio:9000

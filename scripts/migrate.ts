@@ -5,8 +5,11 @@ import { pino } from 'pino';
 import { loadConfig } from '@/shared/config/index.js';
 import { createPool } from '@/shared/db/index.js';
 
+import { makeEphemeralJwtEnv } from './ephemeral-jwt-env.js';
+
 // Раннер миграций: только вперёд, каталог drizzle/ — единственный источник DDL.
-const config = loadConfig();
+// JWT-ключи миграциям не нужны: эпемерная пара только для валидации конфига.
+const config = loadConfig({ ...makeEphemeralJwtEnv(), ...process.env });
 const logger = pino({ level: config.logLevel });
 
 const pool = createPool(config.databaseUrl);
