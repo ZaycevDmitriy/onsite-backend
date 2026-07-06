@@ -7,6 +7,8 @@ on:
     workflows: [CI]
     types: [completed]
     branches: [main]
+  # Ручной запуск: докатить Docker-образ для уже существующего релиза.
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -16,7 +18,7 @@ permissions:
 
 jobs:
   release:
-    if: github.event.workflow_run.conclusion == 'success'
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
 
     steps:
@@ -46,7 +48,12 @@ jobs:
         run: |
           if [ -f .release-version ]; then
             echo "version=$(cat .release-version)" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            # Нового релиза нет — берём последний существующий тег.
+            echo "version=$(git describe --tags --abbrev=0 | sed 's/^v//')" >> "$GITHUB_OUTPUT"
           fi
+          # Имя образа в GHCR обязано быть в нижнем регистре.
+          echo "image=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
 
       # docker/login-action@v3.7.0
       - name: Логин в GHCR
@@ -66,5 +73,5 @@ jobs:
           target: runtime
           push: true
           tags: |
-            ghcr.io/${{ github.repository }}:${{ steps.version.outputs.version }}
-            ghcr.io/${{ github.repository }}:latest
+            ${{ steps.version.outputs.image }}:${{ steps.version.outputs.version }}
+            ${{ steps.version.outputs.image }}:latest
