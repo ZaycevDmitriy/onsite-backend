@@ -4,13 +4,14 @@ REST API для [Onsite](https://github.com/ZaycevDmitriy/field-service-crm) —
 
 **Стек:** Node.js 24 · Fastify 5 (TypeBox) · PostgreSQL 16 (Drizzle) · MinIO/S3 · Docker Compose.
 
-**Статус:** M0 — скелет проекта (Fastify + Drizzle + Compose + CI, `/v1/health`, OpenAPI, миграции, сид).
+**Статус:** Фаза 2 — аутентификация и пользователи: JWT RS256 (access 15 мин), непрозрачный refresh с ротацией и отзывом семьи при replay, logout, роли `dispatcher`/`technician`, управление аккаунтами и сброс пароля.
 
 ## Быстрый старт
 
 Весь стек (API + PostgreSQL + MinIO, миграции и сид применяются автоматически):
 
 ```bash
+npx tsx scripts/generate-jwt-keys.ts >> .env   # пара ключей RS256 (однократно)
 docker compose up
 ```
 
@@ -27,10 +28,20 @@ docker compose up
 nvm use               # Node 24 из .nvmrc
 npm ci
 cp .env.example .env  # поправить DATABASE_URL при необходимости
+npx tsx scripts/generate-jwt-keys.ts >> .env  # JWT_PRIVATE_KEY / JWT_PUBLIC_KEY
 npm run migrate
 npm run seed
 npm run dev
 ```
+
+## Аутентификация
+
+- `POST /v1/auth/login` — логин по email/паролю, ответ — пара `accessToken` (JWT RS256, TTL `ACCESS_TOKEN_TTL_SEC`, по умолчанию 15 мин) + `refreshToken` (непрозрачный, TTL `REFRESH_TOKEN_TTL_SEC`, по умолчанию 30 дней). 5 неудач подряд — 429 на 15 минут.
+- `POST /v1/auth/refresh` — ротация: старый токен гаснет, повторное использование погашенного отзывает всю семью сессий.
+- `POST /v1/auth/logout` — отзыв семьи refresh-сессий.
+- `POST /v1/users`, `PATCH /v1/users/:id` — управление аккаунтами (только роль `dispatcher`); сброс пароля отзывает все refresh-сессии пользователя; деактивация действует немедленно.
+
+Ключи RS256 задаются через env `JWT_PRIVATE_KEY`/`JWT_PUBLIC_KEY` (base64-кодированный PEM) — генерируются скриптом `scripts/generate-jwt-keys.ts`, в git не попадают.
 
 ## Команды
 
