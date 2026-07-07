@@ -72,6 +72,7 @@ export const usersRoutes: FastifyPluginAsyncTypebox<IUsersRoutesOptions> =
         app.db,
         request.params.id,
         request.body,
+        request.user.id,
         request.log,
       );
 

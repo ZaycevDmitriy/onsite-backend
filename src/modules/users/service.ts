@@ -151,14 +151,23 @@ export const createUser = async (
   return toUserView(row);
 };
 
-/** Обновляет пользователя: displayName, isActive, сброс пароля. Не найден → 404. */
+/**
+ * Обновляет пользователя: displayName, isActive, сброс пароля. Не найден → 404.
+ * Самодеактивация диспетчера (isActive=false для собственного actorId) → 422 (guard ревью фазы 2).
+ */
 export const updateUser = async (
   db: NodePgDatabase,
   id: string,
   input: IUpdateUserInput,
+  actorId: string,
   logger: FastifyBaseLogger,
 ): Promise<IUpdateUserResult> => {
   logger.debug({ userId: id }, 'обновление пользователя');
+
+  if (input.isActive === false && id === actorId) {
+    logger.debug({ userId: id }, 'самодеактивация отклонена');
+    throw new AppError(422, ErrorCodeEnum.ValidationFailed, 'Cannot deactivate your own account');
+  }
 
   const patch: { displayName?: string; isActive?: boolean; passwordHash?: string } = {};
 
