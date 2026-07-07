@@ -20,6 +20,7 @@ const EMAIL_PREFIX = 'users-test-';
 
 describe.runIf(databaseUrl)('управление пользователями', () => {
   let app: FastifyInstance;
+  let dispatcherId: string;
   let dispatcherToken: string;
   let technicianToken: string;
   const createdUserIds: string[] = [];
@@ -60,6 +61,7 @@ describe.runIf(databaseUrl)('управление пользователями',
 
     const dispatcher = await seedUser('dispatcher');
     const technician = await seedUser('technician');
+    dispatcherId = dispatcher.id;
     dispatcherToken = await loginAs(dispatcher.email);
     technicianToken = await loginAs(technician.email);
   });
@@ -85,7 +87,12 @@ describe.runIf(databaseUrl)('управление пользователями',
       method: 'POST',
       url: '/v1/users',
       headers: authHeaders(dispatcherToken),
-      payload: { email, password: 'new-tech-password', role: 'technician', displayName: 'Новый Техник' },
+      payload: {
+        email,
+        password: 'new-tech-password',
+        role: 'technician',
+        displayName: 'Новый Техник',
+      },
     });
 
     expect(response.statusCode).toBe(201);
@@ -171,6 +178,42 @@ describe.runIf(databaseUrl)('управление пользователями',
       },
     });
     expect(denied.statusCode).toBe(401);
+  });
+
+  it('диспетчер не может деактивировать сам себя → 422 (guard самодеактивации)', async () => {
+    const response = await app.inject({
+      method: 'PATCH',
+      url: `/v1/users/${dispatcherId}`,
+      headers: authHeaders(dispatcherToken),
+      payload: { isActive: false },
+    });
+
+    expect(response.statusCode).toBe(422);
+    expect(response.json<{ code: string }>().code).toBe('validation_failed');
+
+    // Диспетчер остаётся активным и продолжает работать своим токеном.
+    const stillWorks = await app.inject({
+      method: 'PATCH',
+      url: `/v1/users/${dispatcherId}`,
+      headers: authHeaders(dispatcherToken),
+      payload: { displayName: 'Всё ещё диспетчер' },
+    });
+    expect(stillWorks.statusCode).toBe(200);
+    expect(stillWorks.json<{ isActive: boolean }>().isActive).toBe(true);
+  });
+
+  it('диспетчер деактивирует другого диспетчера — guard не мешает (только self)', async () => {
+    const otherDispatcher = await seedUser('dispatcher');
+
+    const response = await app.inject({
+      method: 'PATCH',
+      url: `/v1/users/${otherDispatcher.id}`,
+      headers: authHeaders(dispatcherToken),
+      payload: { isActive: false },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json<{ isActive: boolean }>().isActive).toBe(false);
   });
 
   it('сброс пароля отзывает refresh-сессии: прежний refresh → 401 (FR-04)', async () => {
