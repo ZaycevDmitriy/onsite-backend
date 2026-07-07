@@ -9,11 +9,16 @@ export {
 } from './domain.js';
 export { ordersRoutes, type IOrdersRoutesOptions } from './routes.js';
 export {
+  applySyncTransition,
   assignOrder,
   createOrder,
   findOrderForAccess,
   getOrder,
+  getOrderSnapshot,
   listOrders,
+  listOrdersForSync,
+  listUnassignedTombstones,
+  recordSyncPhotoAdded,
   transitionOrder,
   updateOrder,
   type IAssignOrderInput,
@@ -27,6 +32,13 @@ export {
   type IOrderPhotoView,
   type IOrderRequester,
   type IOrderView,
+  type ISyncTransitionResult,
   type ITransitionOrderInput,
+  type IUnassignedTombstoneView,
   type IUpdateOrderInput,
 } from './service.js';
+export { getCurrentSyncSeq } from './repository.js';
+export type {
+  IListOrdersForSyncFilters,
+  IListUnassignedTombstonesFilters,
+} from './repository.js';

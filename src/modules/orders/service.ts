@@ -13,12 +13,18 @@ import {
   insertOrder,
   insertOrderEvent,
   listOrders as listOrdersRepo,
+  listOrdersForSync as listOrdersForSyncRepo,
+  listUnassignedTombstones as listUnassignedTombstonesRepo,
   updateOrderById,
 } from './repository.js';
 
 import type {
+  DbClient,
   IInsertOrderInput,
   IListOrdersFilters,
+  IListOrdersForSyncFilters,
+  IListUnassignedTombstonesFilters,
+  IOrderAssignmentRow,
   IOrderEventRow,
   IOrderRow,
   IUpdateOrderPatch,
@@ -91,6 +97,12 @@ export interface IOrderAccessInfo {
   status: ServiceOrderStatusEnum;
 }
 
+// Tombstone-элемент pull-синхронизации: снятое/переназначенное назначение техника (решение #2 фазы 5).
+export interface IUnassignedTombstoneView {
+  orderId: string;
+  seq: number;
+}
+
 export interface ICreateOrderInput {
   title: string;
   client: string;
@@ -124,6 +136,13 @@ export interface ITransitionOrderInput {
   to: ServiceOrderStatusEnum;
   baseStatus: ServiceOrderStatusEnum;
 }
+
+// Вердикт синк-перехода (решение #5, #7 фазы 5): результат вместо исключения — sync сам решает,
+// как отразить его в ответе батча мутаций.
+export type ISyncTransitionResult =
+  | { result: 'rejected'; code: 'not_found' }
+  | { result: 'conflict'; order: IOrderView }
+  | { result: 'applied'; order: IOrderView };
 
 export interface IListOrdersQuery {
   status?: ServiceOrderStatusEnum;
@@ -330,6 +349,151 @@ export const listOrders = async (
   logger.info({ count: page.length, hasMore }, 'список заявок получен');
 
   return { items: page.map(toOrderView), nextCursor };
+};
+
+/**
+ * Заявки техника, изменённые после курсора (pull-синхронизация, FR-08, зависимость sync).
+ * Выборка limit+1 — расчёт hasMore/nextCursor остаётся на стороне вызывающего sync-сервиса.
+ */
+export const listOrdersForSync = async (
+  db: NodePgDatabase,
+  filters: IListOrdersForSyncFilters,
+  logger: FastifyBaseLogger,
+): Promise<IOrderView[]> => {
+  logger.debug({ assignedTo: filters.assignedTo, cursor: filters.cursor }, 'sync: список заявок по курсору');
+
+  const rows = await listOrdersForSyncRepo(db, filters);
+
+  logger.debug({ count: rows.length }, 'sync: заявки по курсору получены');
+
+  return rows.map(toOrderView);
+};
+
+const toTombstoneView = (row: IOrderAssignmentRow): IUnassignedTombstoneView => ({
+  orderId: row.orderId,
+  // unassignedSeq не может быть null — выборка уже отфильтрована по gt(cursor) в репозитории.
+  seq: row.unassignedSeq as number,
+});
+
+/** Tombstone снятых/переназначенных назначений техника после курсора (pull-синхронизация, FR-08). */
+export const listUnassignedTombstones = async (
+  db: NodePgDatabase,
+  filters: IListUnassignedTombstonesFilters,
+  logger: FastifyBaseLogger,
+): Promise<IUnassignedTombstoneView[]> => {
+  logger.debug({ userId: filters.userId, cursor: filters.cursor }, 'sync: список tombstone по курсору');
+
+  const rows = await listUnassignedTombstonesRepo(db, filters);
+
+  logger.debug({ count: rows.length }, 'sync: tombstone по курсору получены');
+
+  return rows.map(toTombstoneView);
+};
+
+/** Снимок заявки для вердиктов синка (конфликт/применённая мутация, решение #5-6 фазы 5). */
+export const getOrderSnapshot = async (db: DbClient, id: string): Promise<IOrderView | null> => {
+  const row = await findOrderById(db, id);
+
+  return row === null ? null : toOrderView(row);
+};
+
+/**
+ * Синк-версия перехода статуса (FR-09/FR-10, source='sync'): вызывается внутри транзакции
+ * мутации sync (принимает tx как DbClient) — не бросает AppError, возвращает вердикт с
+ * решением, чтобы sync мог зафиксировать его в sync_mutations байт-в-байт (решение #3, #5).
+ */
+export const applySyncTransition = async (
+  db: DbClient,
+  id: string,
+  input: ITransitionOrderInput,
+  requester: IOrderRequester,
+  logger: FastifyBaseLogger,
+): Promise<ISyncTransitionResult> => {
+  logger.debug({ orderId: id, to: input.to }, 'sync: переход статуса заявки');
+
+  const current = await findOrderByIdForUpdate(db, id);
+
+  if (current === null) {
+    logger.debug({ orderId: id }, 'sync: переход отклонён — заявка не найдена');
+
+    return { result: 'rejected', code: 'not_found' };
+  }
+
+  if (current.assignedTo !== requester.id) {
+    logger.debug(
+      { orderId: id, assignedTo: current.assignedTo, requesterId: requester.id },
+      'sync: переход отклонён — заявка не назначена на техника',
+    );
+
+    return { result: 'conflict', order: toOrderView(current) };
+  }
+
+  if (current.status !== input.baseStatus || !canTransition(current.status, input.to)) {
+    logger.debug(
+      { orderId: id, baseStatus: input.baseStatus, actualStatus: current.status, to: input.to },
+      'sync: переход отклонён — конфликт статуса',
+    );
+
+    await insertOrderEvent(db, {
+      orderId: id,
+      actorId: requester.id,
+      type: OrderEventTypeEnum.SyncConflict,
+      payload: { baseStatus: input.baseStatus, to: input.to, actualStatus: current.status },
+      source: 'sync',
+    });
+
+    return { result: 'conflict', order: toOrderView(current) };
+  }
+
+  await insertOrderEvent(db, {
+    orderId: id,
+    actorId: requester.id,
+    type: OrderEventTypeEnum.StatusChanged,
+    payload: { from: current.status, to: input.to, occurredAt: new Date().toISOString() },
+    source: 'sync',
+  });
+
+  const updated = await updateOrderById(db, id, { status: input.to });
+
+  logger.info({ orderId: id, status: input.to }, 'sync: переход статуса применён');
+
+  // Строка только что найдена FOR UPDATE в этой же транзакции: не может отсутствовать.
+  return { result: 'applied', order: toOrderView(updated as IOrderRow) };
+};
+
+/**
+ * Записывает событие photo_added и сдвигает updated_seq заявки (мутация photo_add sync, §5.6,
+ * решение #6 фазы 5): вызывается внутри транзакции мутации sync (tx как DbClient) — order_events
+ * принадлежит orders, поэтому sync не пишет в него напрямую. null — заявка не найдена.
+ */
+export const recordSyncPhotoAdded = async (
+  db: DbClient,
+  orderId: string,
+  actorId: string,
+  photoId: string,
+  logger: FastifyBaseLogger,
+): Promise<IOrderView | null> => {
+  logger.debug({ orderId, photoId }, 'sync: запись события photo_added');
+
+  await insertOrderEvent(db, {
+    orderId,
+    actorId,
+    type: OrderEventTypeEnum.PhotoAdded,
+    payload: { photoId },
+    source: 'sync',
+  });
+
+  const updated = await updateOrderById(db, orderId, {});
+
+  if (updated === null) {
+    logger.debug({ orderId }, 'sync: событие photo_added записано, но заявка не найдена');
+
+    return null;
+  }
+
+  logger.info({ orderId, photoId }, 'sync: событие photo_added записано, updated_seq сдвинут');
+
+  return toOrderView(updated);
 };
 
 /** Правит поля заявки (dispatcher); статус — только через transition; Done/Cancelled → 409. */

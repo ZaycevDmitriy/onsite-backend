@@ -10,7 +10,8 @@ const roleSchema = Type.Union([
 // Тело создания пользователя (только диспетчер).
 export const createUserBodySchema = Type.Object({
   email: Type.String({ format: 'email', minLength: 3, maxLength: 320 }),
-  password: Type.String({ minLength: 8, maxLength: 1024 }),
+  // Минимум 12 символов — NIST 800-63B для паролей без второго фактора.
+  password: Type.String({ minLength: 12, maxLength: 1024 }),
   role: roleSchema,
   displayName: Type.String({ minLength: 1, maxLength: 200 }),
 });
@@ -20,7 +21,7 @@ export const updateUserBodySchema = Type.Object(
   {
     displayName: Type.Optional(Type.String({ minLength: 1, maxLength: 200 })),
     isActive: Type.Optional(Type.Boolean()),
-    password: Type.Optional(Type.String({ minLength: 8, maxLength: 1024 })),
+    password: Type.Optional(Type.String({ minLength: 12, maxLength: 1024 })),
   },
   { minProperties: 1 },
 );

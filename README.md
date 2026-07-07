@@ -4,7 +4,7 @@ REST API для [Onsite](https://github.com/ZaycevDmitriy/field-service-crm) —
 
 **Стек:** Node.js 24 · Fastify 5 (TypeBox) · PostgreSQL 16 (Drizzle) · MinIO/S3 · Docker Compose.
 
-**Статус:** Фаза 4 — фотоотчёты: staged-загрузка (multipart, `Idempotency-Key`, S3/MinIO), выдача файла через 302 на presigned URL, автоматическая зачистка staged-сирот. Плюс заявки фазы 3 (CRUD, назначение, конечный автомат статусов, `order_events`) и аутентификация фазы 2 (JWT RS256, роли `dispatcher`/`technician`).
+**Статус:** Фаза 5 (MVP) — синк-протокол: pull изменений по курсору с tombstone и safety-lag, батч офлайн-мутаций с идемпотентностью и server-authoritative вердиктами. Плюс фотоотчёты фазы 4 (staged-загрузка, presigned URL, зачистка сирот), заявки фазы 3 (CRUD, назначение, конечный автомат статусов, `order_events`) и аутентификация фазы 2 (JWT RS256, роли `dispatcher`/`technician`).
 
 ## Быстрый старт
 
@@ -36,7 +36,7 @@ npm run dev
 
 ### Интеграционные тесты
 
-Требуют реальных PostgreSQL и MinIO — без `DATABASE_URL` интеграционные тесты скипаются, без `S3_ENDPOINT` дополнительно скипаются тесты фото:
+Требуют реальных PostgreSQL и MinIO — без `DATABASE_URL` интеграционные тесты скипаются, без `S3_ENDPOINT` дополнительно скипаются тесты фото и мутаций синка (`photo_add`):
 
 ```bash
 docker compose up -d postgres minio minio-init
@@ -73,8 +73,18 @@ S3_SECRET_KEY=minioadmin \
 
 - `POST /v1/orders/:id/photos` — multipart-загрузка фотоотчёта (поля `file`, `takenAt`, опционально `comment`; заголовок `Idempotency-Key` обязателен). Первая загрузка → 201, повтор с тем же `Idempotency-Key` и тем же payload → 200 с той же записью (идемпотентность без создания второго объекта в S3); тот же ключ с другим `comment`/`takenAt` → 409 `conflict`. JPEG/PNG/WebP — иначе 415 `unsupported_media_type`; лимит размера `PHOTO_MAX_SIZE_MB` (по умолчанию 10 МБ) — иначе 413 `file_too_large`. Доступ — по правилам заявки (техник только к своей, иначе 404).
 - `GET /v1/photos/:id/file` — 302 с `Location` на presigned URL (TTL `PHOTO_PRESIGN_TTL_SEC`, по умолчанию 600 с). Committed-фото — доступ по правилам заявки; staged — только автору; чужое/несуществующее → 404.
-- Фото загружаются в статусе `staged` и не попадают в `GET /v1/orders/:id`, пока не будут закоммичены мутацией `photo_add` (фаза 5).
+- Фото загружаются в статусе `staged` и не попадают в `GET /v1/orders/:id`, пока не будут закоммичены мутацией `photo_add` синка.
 - Зачистка сирот: staged-фото старше `PHOTO_STAGED_TTL_HOURS` (по умолчанию 168 ч = 7 суток) удаляются вместе с объектом в S3 фоновым воркером (интервал `PHOTO_CLEANUP_INTERVAL_MIN`, по умолчанию 60 мин; первый прогон — при старте сервера).
+
+## Синхронизация
+
+Оба эндпоинта — только роль `technician`; курсор и мутации идемпотентны, конфликты разрешает сервер (server-authoritative).
+
+- `GET /v1/sync/orders?cursor&limit` — pull изменённых заявок техника и tombstone снятых/переназначенных назначений одним потоком, отсортированным по общему курсору `seq`. Курсор — `bigint`-последовательность `sync_seq`; ответ `{ items, nextCursor }`, элемент — `{ type: 'order', order }` (заявка + committed-фото) или `{ type: 'unassigned', orderId }`. При неполной странице `nextCursor` сдвигается с safety-lag `SYNC_SAFETY_LAG` (по умолчанию 100) — компенсирует конкурентные транзакции, коммитящиеся не по порядку; повторная выдача хвоста допустима, так как pull идемпотентен.
+- `POST /v1/sync/mutations` — батч офлайн-мутаций (1–500 за раз), тело `{ mutations: [...] }`, ответ `{ verdicts: [...] }`. Каждая мутация — идемпотентна по клиентскому `mutationId` (повтор → `duplicate` с исходным вердиктом байт-в-байт, состояние не меняется) и обрабатывается в собственной транзакции — сбой одной не блокирует остальные батча.
+  - `status_change` — переход статуса заявки; несовпадение `baseStatus` или недопустимый переход → `conflict` со снимком заявки и событием `sync_conflict`; заявка не назначена на техника (переназначена/снята) → `conflict`; заявка не найдена → `rejected`.
+  - `photo_add` — коммит ранее загруженного staged-фото (`photoId`); неизвестный/чужой/уже закоммиченный `photoId`, либо `orderId` мутации не совпадает с заявкой фото → `rejected`; заявка в статусе `Cancelled`/`Done` — фотоотчёт всё равно `applied` (ценен постфактум).
+  - Каждая применённая мутация пишет событие в `order_events` с `source: 'sync'` и двигает курсор заявки.
 
 ## Команды
 

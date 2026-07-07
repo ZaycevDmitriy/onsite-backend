@@ -9,15 +9,17 @@ import { AppError, ErrorCodeEnum } from '@/shared/errors/index.js';
 import { PhotoStatusEnum } from './db-schema.js';
 import { buildStorageKey, isAllowedMimeType, matchesDeclaredMimeType } from './domain.js';
 import {
+  commitPhotoById,
   deletePhotoById,
   findPhotoById,
   findPhotoByStorageKey,
   insertPhoto,
   listCommittedPhotosByOrderId as listCommittedPhotosByOrderIdRepo,
+  listCommittedPhotosByOrderIds as listCommittedPhotosByOrderIdsRepo,
   listExpiredStagedPhotos,
 } from './repository.js';
 
-import type { IPhotoRow } from './repository.js';
+import type { DbClient, IPhotoRow } from './repository.js';
 import type { IS3Decoration } from '@/shared/plugins/index.js';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import type { FastifyBaseLogger } from 'fastify';
@@ -249,15 +251,56 @@ export const listCommittedPhotosByOrderId = async (
 };
 
 /**
- * Ищет staged-фото по id — задел под мутацию photo_add фазы 5 (решение #11), в фазе 4 не вызывается.
+ * Ищет staged-фото по id — используется мутацией photo_add (sync) перед коммитом внутри
+ * транзакции мутации (принимает tx как DbClient). null — не найдено или уже не staged.
  */
 export const findStagedPhotoForCommit = async (
-  db: NodePgDatabase,
+  db: DbClient,
   id: string,
-): Promise<IPhotoRow | null> => {
+): Promise<IPhotoView | null> => {
   const row = await findPhotoById(db, id);
 
-  return row !== null && row.status === PhotoStatusEnum.Staged ? row : null;
+  return row !== null && row.status === PhotoStatusEnum.Staged ? toPhotoView(row) : null;
+};
+
+/**
+ * Committed-фото нескольких заявок разом, сгруппированные по orderId (pull-синхронизация,
+ * решение #2 фазы 5) — один запрос вместо N.
+ */
+export const listCommittedPhotosByOrderIds = async (
+  db: NodePgDatabase,
+  orderIds: string[],
+): Promise<Map<string, IPhotoView[]>> => {
+  const grouped = new Map<string, IPhotoView[]>();
+
+  if (orderIds.length === 0) {
+    return grouped;
+  }
+
+  const rows = await listCommittedPhotosByOrderIdsRepo(db, orderIds);
+
+  for (const row of rows) {
+    const view = toPhotoView(row);
+    const existing = grouped.get(view.orderId);
+
+    if (existing !== undefined) {
+      existing.push(view);
+    } else {
+      grouped.set(view.orderId, [view]);
+    }
+  }
+
+  return grouped;
+};
+
+/**
+ * Коммитит staged-фото мутацией photo_add (sync, §5.6, решение #6 фазы 5): вызывается внутри
+ * транзакции мутации (tx как DbClient). null — фото уже не staged (гонка/повтор).
+ */
+export const commitStagedPhoto = async (db: DbClient, id: string): Promise<IPhotoView | null> => {
+  const row = await commitPhotoById(db, id);
+
+  return row === null ? null : toPhotoView(row);
 };
 
 /**

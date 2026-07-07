@@ -2,11 +2,13 @@
 export { PhotoStatusEnum } from './db-schema.js';
 export { photosRoutes, type IPhotosRoutesOptions } from './routes.js';
 export {
+  commitStagedPhoto,
   findStagedPhotoForCommit,
   getPhotoFileLocation,
   uploadStagedPhoto,
   cleanupOrphanStagedPhotos,
   listCommittedPhotosByOrderId,
+  listCommittedPhotosByOrderIds,
   type ICleanupResult,
   type IPhotoFileLocation,
   type IPhotoRequester,

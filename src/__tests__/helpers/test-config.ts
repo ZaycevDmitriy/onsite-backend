@@ -30,5 +30,6 @@ export const makeTestConfig = (databaseUrl: string, overrides: Partial<IAppConfi
   photoPresignTtlSec: 600,
   photoStagedTtlHours: 168,
   photoCleanupIntervalMin: 60,
+  syncSafetyLag: 100,
   ...overrides,
 });

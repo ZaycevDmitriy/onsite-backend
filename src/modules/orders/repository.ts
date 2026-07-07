@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, isNull, lt, or, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gt, isNull, lt, or, sql } from 'drizzle-orm';
 
 import { orderAssignments, orderEvents, orders } from './db-schema.js';
 
@@ -44,6 +44,18 @@ export interface IListOrdersFilters {
   status?: ServiceOrderStatusEnum;
   assignedTo?: string;
   cursor?: { createdAt: Date; id: string };
+  limit: number;
+}
+
+export interface IListOrdersForSyncFilters {
+  assignedTo: string;
+  cursor: number;
+  limit: number;
+}
+
+export interface IListUnassignedTombstonesFilters {
+  userId: string;
+  cursor: number;
   limit: number;
 }
 
@@ -106,6 +118,18 @@ export const updateOrderById = async (
   return rows[0] ?? null;
 };
 
+/**
+ * Текущее (последнее выданное) значение общей последовательности sync_seq (решение #1 фазы 5) —
+ * основа safety-lag курсора pull. last_value обновляется немедленно, вне транзакций — это
+ * намеренно: лаг далее компенсирует возможность увидеть значение ещё не закоммиченной строки.
+ */
+export const getCurrentSyncSeq = async (db: DbClient): Promise<number> => {
+  const result = await db.execute<{ last_value: string }>(sql`select last_value from sync_seq`);
+  const row = result.rows[0];
+
+  return row !== undefined ? Number(row.last_value) : 0;
+};
+
 /** Keyset-список заявок по (created_at DESC, id DESC) с фильтрами (решение #5). */
 export const listOrders = async (
   db: DbClient,
@@ -133,6 +157,41 @@ export const listOrders = async (
     .orderBy(desc(orders.createdAt), desc(orders.id))
     .limit(filters.limit);
 };
+
+/**
+ * Заявки техника, изменённые после курсора (pull-синхронизация, FR-08, решение #1 фазы 5).
+ * Сортировка по updated_seq — курсор двигается по этому же полю.
+ */
+export const listOrdersForSync = async (
+  db: DbClient,
+  filters: IListOrdersForSyncFilters,
+): Promise<IOrderRow[]> =>
+  db
+    .select()
+    .from(orders)
+    .where(and(eq(orders.assignedTo, filters.assignedTo), gt(orders.updatedSeq, filters.cursor)))
+    .orderBy(asc(orders.updatedSeq))
+    .limit(filters.limit);
+
+/**
+ * Tombstone-записи снятых/переназначенных назначений техника после курсора (FR-08, §5.5).
+ * Сортировка по unassigned_seq — второй поток курсора pull, сливаемый с заявками по seq.
+ */
+export const listUnassignedTombstones = async (
+  db: DbClient,
+  filters: IListUnassignedTombstonesFilters,
+): Promise<IOrderAssignmentRow[]> =>
+  db
+    .select()
+    .from(orderAssignments)
+    .where(
+      and(
+        eq(orderAssignments.userId, filters.userId),
+        gt(orderAssignments.unassignedSeq, filters.cursor),
+      ),
+    )
+    .orderBy(asc(orderAssignments.unassignedSeq))
+    .limit(filters.limit);
 
 /** Пишет событие в append-only журнал заявки (FR-15) — только insert, без update/delete. */
 export const insertOrderEvent = async (

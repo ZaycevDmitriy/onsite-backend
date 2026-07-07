@@ -1,4 +1,4 @@
-import { and, asc, eq, lt } from 'drizzle-orm';
+import { and, asc, eq, inArray, lt } from 'drizzle-orm';
 
 import { photos, PhotoStatusEnum } from './db-schema.js';
 
@@ -53,6 +53,32 @@ export const listCommittedPhotosByOrderId = async (
     .from(photos)
     .where(and(eq(photos.orderId, orderId), eq(photos.status, PhotoStatusEnum.Committed)))
     .orderBy(asc(photos.takenAt));
+
+/** Committed-фото нескольких заявок разом (pull-синхронизация, решение #2 фазы 5) — без N+1. */
+export const listCommittedPhotosByOrderIds = async (
+  db: DbClient,
+  orderIds: string[],
+): Promise<IPhotoRow[]> =>
+  db
+    .select()
+    .from(photos)
+    .where(and(inArray(photos.orderId, orderIds), eq(photos.status, PhotoStatusEnum.Committed)))
+    .orderBy(asc(photos.takenAt));
+
+/**
+ * Переводит фото staged → committed (мутация photo_add, §5.6, решение #6 фазы 5).
+ * Условие status = staged в WHERE — гонка с повторной обработкой той же мутации не удвоит переход.
+ * null — фото не найдено или уже не staged.
+ */
+export const commitPhotoById = async (db: DbClient, id: string): Promise<IPhotoRow | null> => {
+  const rows = await db
+    .update(photos)
+    .set({ status: PhotoStatusEnum.Committed })
+    .where(and(eq(photos.id, id), eq(photos.status, PhotoStatusEnum.Staged)))
+    .returning();
+
+  return rows[0] ?? null;
+};
 
 /** Staged-фото старше olderThan — кандидаты на зачистку сирот (T-13). */
 export const listExpiredStagedPhotos = async (
