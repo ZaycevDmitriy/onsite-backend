@@ -11,7 +11,7 @@ import type { FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
 export const healthRoutes: FastifyPluginAsyncTypebox = async (app) => {
   app.get(
     '/v1/health',
-    { schema: { response: { 200: healthResponseSchema } } },
+    { config: { rateLimit: false }, schema: { response: { 200: healthResponseSchema } } },
     async (request) => {
       let db: DepStatusEnum = DepStatusEnum.Ok;
 

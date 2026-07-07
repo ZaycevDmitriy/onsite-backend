@@ -35,9 +35,12 @@ export const makeTestConfig = (databaseUrl: string, overrides: Partial<IAppConfi
   pushWorkerIntervalSec: 10,
   pushReceiptDelayMin: 15,
   pushMaxAttempts: 5,
-  rateLimitGlobalMax: 200,
+  // Высокие лимиты по умолчанию: интеграционные тесты других модулей легитимно шлют много
+  // запросов подряд (например, повторные login/refresh) и не должны попадать под 429.
+  // Сам rate limiting проверяется отдельным тестом с точечным overrides маленьких значений.
+  rateLimitGlobalMax: 10_000,
   rateLimitGlobalWindowMs: 60_000,
-  rateLimitAuthMax: 10,
+  rateLimitAuthMax: 10_000,
   rateLimitAuthWindowMs: 60_000,
   ...overrides,
 });

@@ -1,6 +1,7 @@
 // Публичный API модуля notifications: единственная точка импорта для соседей.
 export { PushOutboxStatusEnum, type IOutboxTicket } from './db-schema.js';
 export { notificationsRoutes } from './routes.js';
+export { countOutboxByStatus } from './repository.js';
 export {
   enqueueAssignmentPush,
   registerDevice,
