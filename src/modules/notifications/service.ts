@@ -3,8 +3,9 @@ import { Expo } from 'expo-server-sdk';
 import { isUniqueViolation } from '@/shared/db/index.js';
 import { AppError, ErrorCodeEnum } from '@/shared/errors/index.js';
 
-import { findDeviceByToken, insertDevice, updateDeviceOwner } from './repository.js';
+import { enqueuePush, findDeviceByToken, insertDevice, updateDeviceOwner } from './repository.js';
 
+import type { DbClient } from './repository.js';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import type { FastifyBaseLogger } from 'fastify';
 
@@ -15,6 +16,13 @@ export interface IRegisterDeviceInput {
 // Заявитель операции: id пользователя из request.user (authPlugin).
 export interface IDeviceRequester {
   id: string;
+}
+
+export interface IEnqueueAssignmentPushInput {
+  userId: string;
+  orderId: string;
+  orderTitle: string;
+  scheduledAt: string;
 }
 
 /**
@@ -80,4 +88,28 @@ export const registerDevice = async (
     logger.error({ err: error }, 'ошибка регистрации устройства');
     throw error;
   }
+};
+
+/**
+ * Кладёт push о назначении заявки в outbox (FR-14, решение #3 фазы 6): вызывается ИНЪЕКЦИЕЙ
+ * ВНУТРИ транзакции assignOrder (orders, паттерн revokeAllUserSessions) — outbox атомарен
+ * с самим назначением. Сама отправка в Expo — вне критического пути, её делает push-worker.
+ */
+export const enqueueAssignmentPush = async (
+  db: DbClient,
+  input: IEnqueueAssignmentPushInput,
+  logger: FastifyBaseLogger,
+): Promise<void> => {
+  const message = {
+    title: 'Новая заявка назначена',
+    body: `${input.orderTitle} — визит ${input.scheduledAt}`,
+    data: { type: 'order_assigned', orderId: input.orderId },
+  };
+
+  await enqueuePush(db, { userId: input.userId, message });
+
+  logger.debug(
+    { userId: input.userId, orderId: input.orderId },
+    'push о назначении поставлен в очередь outbox',
+  );
 };

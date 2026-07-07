@@ -84,6 +84,23 @@ export type IListCommittedPhotos = (
   orderId: string,
 ) => Promise<IOrderPhotoView[]>;
 
+export interface IEnqueueAssignmentPushInput {
+  userId: string;
+  orderId: string;
+  orderTitle: string;
+  scheduledAt: string;
+}
+
+// Постановка push о назначении в outbox: инъецируется composition root'ом из
+// @/modules/notifications (решение #3 фазы 6, паттерн revokeAllUserSessions) — orders
+// notifications не импортирует. Вызывается ВНУТРИ транзакции assignOrder тем же db-клиентом
+// (tx), поэтому outbox атомарен с самим назначением (FR-14).
+export type IEnqueueAssignmentPush = (
+  db: DbClient,
+  input: IEnqueueAssignmentPushInput,
+  logger: FastifyBaseLogger,
+) => Promise<void>;
+
 // Ответ GET /v1/orders/:id: заявка + фото + события (решение #4, #10).
 export interface IOrderDetailView extends IOrderView {
   photos: IOrderPhotoView[];
@@ -555,6 +572,7 @@ export const assignOrder = async (
   id: string,
   input: IAssignOrderInput,
   requester: IOrderRequester,
+  enqueueAssignmentPush: IEnqueueAssignmentPush,
   logger: FastifyBaseLogger,
 ): Promise<IOrderView> => {
   logger.debug({ orderId: id, technicianId: input.technicianId }, 'назначение заявки');
@@ -611,10 +629,23 @@ export const assignOrder = async (
       source: 'api',
     });
 
-    const updated = await updateOrderById(tx, id, { assignedTo: input.technicianId });
+    const updated = (await updateOrderById(tx, id, {
+      assignedTo: input.technicianId,
+    })) as IOrderRow;
 
-    // Строка только что найдена FOR UPDATE в этой же транзакции: не может отсутствовать.
-    return updated as IOrderRow;
+    // Атомарно с назначением (решение #3 фазы 6): откат транзакции откатывает и outbox-запись.
+    await enqueueAssignmentPush(
+      tx,
+      {
+        userId: input.technicianId,
+        orderId: id,
+        orderTitle: updated.title,
+        scheduledAt: updated.scheduledAt.toISOString(),
+      },
+      logger,
+    );
+
+    return updated;
   });
 
   logger.info({ orderId: id, technicianId: input.technicianId }, 'заявка назначена');

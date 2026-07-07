@@ -3,7 +3,7 @@ import Fastify from 'fastify';
 
 import { authRoutes, createAuthService } from '@/modules/auth/index.js';
 import { healthRoutes } from '@/modules/health/index.js';
-import { notificationsRoutes } from '@/modules/notifications/index.js';
+import { enqueueAssignmentPush, notificationsRoutes } from '@/modules/notifications/index.js';
 import {
   applySyncTransition,
   getCurrentSyncSeq,
@@ -88,7 +88,10 @@ export const buildApp = async (config: IAppConfig): Promise<FastifyInstance> => 
   });
   // Committed-фото в GET /v1/orders/:id инъецируются из photos: цикла orders ↔ photos нет,
   // так как orders не импортирует photos напрямую (решение #10).
-  await app.register(ordersRoutes, { listCommittedPhotos: listCommittedPhotosByOrderId });
+  await app.register(ordersRoutes, {
+    listCommittedPhotos: listCommittedPhotosByOrderId,
+    enqueueAssignmentPush,
+  });
   await app.register(photosRoutes, {
     maxFileSizeBytes: config.photoMaxSizeMb * 1024 * 1024,
     presignTtlSec: config.photoPresignTtlSec,

@@ -23,6 +23,8 @@ export {
   updateOrder,
   type IAssignOrderInput,
   type ICreateOrderInput,
+  type IEnqueueAssignmentPush,
+  type IEnqueueAssignmentPushInput,
   type IListCommittedPhotos,
   type IListOrdersQuery,
   type IListOrdersResult,
