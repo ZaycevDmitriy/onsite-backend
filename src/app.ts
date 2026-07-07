@@ -4,6 +4,7 @@ import Fastify from 'fastify';
 import { authRoutes, createAuthService } from '@/modules/auth/index.js';
 import { healthRoutes } from '@/modules/health/index.js';
 import { ordersRoutes } from '@/modules/orders/index.js';
+import { listCommittedPhotosByOrderId, photosRoutes } from '@/modules/photos/index.js';
 import { getActiveUser, usersRoutes } from '@/modules/users/index.js';
 import { dbPlugin } from '@/shared/db/index.js';
 import { errorHandler, notFoundHandler } from '@/shared/errors/index.js';
@@ -69,7 +70,13 @@ export const buildApp = async (config: IAppConfig): Promise<FastifyInstance> => 
   await app.register(usersRoutes, {
     revokeAllUserSessions: (userId, logger) => authService.revokeAllUserSessions(userId, logger),
   });
-  await app.register(ordersRoutes);
+  // Committed-фото в GET /v1/orders/:id инъецируются из photos: цикла orders ↔ photos нет,
+  // так как orders не импортирует photos напрямую (решение #10).
+  await app.register(ordersRoutes, { listCommittedPhotos: listCommittedPhotosByOrderId });
+  await app.register(photosRoutes, {
+    maxFileSizeBytes: config.photoMaxSizeMb * 1024 * 1024,
+    presignTtlSec: config.photoPresignTtlSec,
+  });
 
   return app;
 };

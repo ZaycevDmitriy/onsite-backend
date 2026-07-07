@@ -20,12 +20,18 @@ import {
   updateOrder,
 } from './service.js';
 
+import type { IListCommittedPhotos } from './service.js';
 import type { FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
 
+export interface IOrdersRoutesOptions {
+  // Committed-фото заявки: инъецируется из @/modules/photos композиционным корнем (решение #10).
+  listCommittedPhotos: IListCommittedPhotos;
+}
+
 // Заявки: список/детали доступны обеим ролям, остальное — только dispatcher (FR-03).
-export const ordersRoutes: FastifyPluginAsyncTypebox =
+export const ordersRoutes: FastifyPluginAsyncTypebox<IOrdersRoutesOptions> =
   // eslint-disable-next-line @typescript-eslint/require-await -- Сигнатура async-плагина Fastify.
-  async (app) => {
+  async (app, { listCommittedPhotos }) => {
   const dispatcherOnly = [app.authenticate, app.requireRole('dispatcher')];
 
   app.get(
@@ -84,7 +90,8 @@ export const ordersRoutes: FastifyPluginAsyncTypebox =
         },
       },
     },
-    async (request) => getOrder(app.db, request.params.id, request.user, request.log),
+    async (request) =>
+      getOrder(app.db, request.params.id, request.user, listCommittedPhotos, request.log),
   );
 
   app.patch(
