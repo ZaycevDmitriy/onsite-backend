@@ -16,15 +16,10 @@ import {
 // Импорт чужой db-schema допустим только на уровне схемы — для FK-ссылок.
 import { users } from '../users/db-schema.js';
 
-// Статусы заявки — зеркало клиентского ServiceOrderStatusEnum.
-export const ServiceOrderStatusEnum = {
-  New: 'New',
-  InProgress: 'InProgress',
-  Done: 'Done',
-  Cancelled: 'Cancelled',
-} as const;
-export type ServiceOrderStatusEnum =
-  (typeof ServiceOrderStatusEnum)[keyof typeof ServiceOrderStatusEnum];
+// Направление db-schema → domain: домен остаётся чистым, инфраструктура его не касается.
+import { ServiceOrderStatusEnum } from './domain.js';
+
+export { ServiceOrderStatusEnum };
 
 // Типы событий журнала заявки.
 export const OrderEventTypeEnum = {
