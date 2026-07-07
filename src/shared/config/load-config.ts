@@ -14,6 +14,17 @@ export interface IAppConfig {
   jwtPublicKey: string;
   accessTokenTtlSec: number;
   refreshTokenTtlSec: number;
+  // S3/MinIO: хранилище фотоотчётов.
+  s3Endpoint: string;
+  s3PublicEndpoint: string;
+  s3Region: string;
+  s3AccessKey: string;
+  s3SecretKey: string;
+  s3Bucket: string;
+  photoMaxSizeMb: number;
+  photoPresignTtlSec: number;
+  photoStagedTtlHours: number;
+  photoCleanupIntervalMin: number;
 }
 
 // Ошибка конфигурации: процесс обязан упасть при старте, значения env в сообщение не попадают.
@@ -52,6 +63,17 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): IAppConfig => 
     jwtPublicKey: decodePemKey('JWT_PUBLIC_KEY', parsed.JWT_PUBLIC_KEY),
     accessTokenTtlSec: parsed.ACCESS_TOKEN_TTL_SEC,
     refreshTokenTtlSec: parsed.REFRESH_TOKEN_TTL_SEC,
+    s3Endpoint: parsed.S3_ENDPOINT,
+    // Публичный эндпоинт по умолчанию совпадает с внутренним (решение #8).
+    s3PublicEndpoint: parsed.S3_PUBLIC_ENDPOINT ?? parsed.S3_ENDPOINT,
+    s3Region: parsed.S3_REGION,
+    s3AccessKey: parsed.S3_ACCESS_KEY,
+    s3SecretKey: parsed.S3_SECRET_KEY,
+    s3Bucket: parsed.S3_BUCKET,
+    photoMaxSizeMb: parsed.PHOTO_MAX_SIZE_MB,
+    photoPresignTtlSec: parsed.PHOTO_PRESIGN_TTL_SEC,
+    photoStagedTtlHours: parsed.PHOTO_STAGED_TTL_HOURS,
+    photoCleanupIntervalMin: parsed.PHOTO_CLEANUP_INTERVAL_MIN,
   };
 };
 

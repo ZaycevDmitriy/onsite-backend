@@ -7,20 +7,24 @@ export {
   canAssign,
   canTransition,
 } from './domain.js';
-export { ordersRoutes } from './routes.js';
+export { ordersRoutes, type IOrdersRoutesOptions } from './routes.js';
 export {
   assignOrder,
   createOrder,
+  findOrderForAccess,
   getOrder,
   listOrders,
   transitionOrder,
   updateOrder,
   type IAssignOrderInput,
   type ICreateOrderInput,
+  type IListCommittedPhotos,
   type IListOrdersQuery,
   type IListOrdersResult,
+  type IOrderAccessInfo,
   type IOrderDetailView,
   type IOrderEventView,
+  type IOrderPhotoView,
   type IOrderRequester,
   type IOrderView,
   type ITransitionOrderInput,

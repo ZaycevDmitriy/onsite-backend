@@ -1,9 +1,9 @@
 import { generateKeyPairSync } from 'node:crypto';
 
 /**
- * Эпемерная пара RS256 для оффлайн-скриптов (openapi:print/validate):
- * реальные ключи не нужны, JWT не выпускаются — только сборка приложения.
- * Значения из process.env имеют приоритет.
+ * Эпемерная пара RS256 + дамми S3-значения для оффлайн-скриптов (migrate/seed/openapi:print/validate):
+ * реальные ключи и S3 не нужны — JWT не выпускаются, S3-клиенты не ходят в сеть при создании
+ * (решение #13 плана фазы 4). Значения из process.env имеют приоритет.
  */
 export const makeEphemeralJwtEnv = (): Record<string, string> => {
   const { privateKey, publicKey } = generateKeyPairSync('rsa', {
@@ -15,5 +15,9 @@ export const makeEphemeralJwtEnv = (): Record<string, string> => {
   return {
     JWT_PRIVATE_KEY: Buffer.from(privateKey, 'utf8').toString('base64'),
     JWT_PUBLIC_KEY: Buffer.from(publicKey, 'utf8').toString('base64'),
+    S3_ENDPOINT: 'http://localhost:9000',
+    S3_ACCESS_KEY: 'unused',
+    S3_SECRET_KEY: 'unused',
+    S3_BUCKET: 'unused',
   };
 };

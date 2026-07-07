@@ -4,7 +4,7 @@ REST API для [Onsite](https://github.com/ZaycevDmitriy/field-service-crm) —
 
 **Стек:** Node.js 24 · Fastify 5 (TypeBox) · PostgreSQL 16 (Drizzle) · MinIO/S3 · Docker Compose.
 
-**Статус:** Фаза 3 — заявки: CRUD, назначение техников с историей (`order_assignments`), конечный автомат статусов (New → InProgress → Done, New/InProgress → Cancelled), append-only журнал событий (`order_events`). Плюс аутентификация фазы 2 (JWT RS256, роли `dispatcher`/`technician`).
+**Статус:** Фаза 4 — фотоотчёты: staged-загрузка (multipart, `Idempotency-Key`, S3/MinIO), выдача файла через 302 на presigned URL, автоматическая зачистка staged-сирот. Плюс заявки фазы 3 (CRUD, назначение, конечный автомат статусов, `order_events`) и аутентификация фазы 2 (JWT RS256, роли `dispatcher`/`technician`).
 
 ## Быстрый старт
 
@@ -34,6 +34,21 @@ npm run seed
 npm run dev
 ```
 
+### Интеграционные тесты
+
+Требуют реальных PostgreSQL и MinIO — без `DATABASE_URL` интеграционные тесты скипаются, без `S3_ENDPOINT` дополнительно скипаются тесты фото:
+
+```bash
+docker compose up -d postgres minio minio-init
+DATABASE_URL=postgres://onsite:onsite@localhost:5432/onsite \
+S3_ENDPOINT=http://localhost:9000 \
+S3_ACCESS_KEY=minioadmin \
+S3_SECRET_KEY=minioadmin \
+  npm run migrate && npm test
+```
+
+Бакет тестам не нужен заранее — тесты фото создают его сами.
+
 ## Аутентификация
 
 - `POST /v1/auth/login` — логин по email/паролю, ответ — пара `accessToken` (JWT RS256, TTL `ACCESS_TOKEN_TTL_SEC`, по умолчанию 15 мин) + `refreshToken` (непрозрачный, TTL `REFRESH_TOKEN_TTL_SEC`, по умолчанию 30 дней). 5 неудач подряд — 429 на 15 минут.
@@ -47,12 +62,19 @@ npm run dev
 
 - `GET /v1/orders` — список: диспетчер видит все (фильтры `status`, `assignedTo`, keyset-пагинация `cursor`/`limit`), техник — только свои (`assignedTo` из query игнорируется).
 - `POST /v1/orders` — создание заявки (только `dispatcher`).
-- `GET /v1/orders/:id` — заявка с фото (пусто до фазы 4) и полной историей событий; чужая заявка технику отвечает 404, не 403.
+- `GET /v1/orders/:id` — заявка с committed-фото и полной историей событий; чужая заявка технику отвечает 404, не 403.
 - `PATCH /v1/orders/:id` — правка полей (только `dispatcher`); статус меняется только через `transition`; заявка в `Done`/`Cancelled` → 409.
 - `POST /v1/orders/:id/assign` — назначение/переназначение техника (только `dispatcher`); недопустимый статус заявки → 409; несуществующий, деактивированный или не-`technician` исполнитель → 422; повторное назначение того же техника — идемпотентно.
 - `POST /v1/orders/:id/transition` — переход статуса (`dispatcher` — любая заявка, `technician` — только своя); недопустимый переход → 409 `invalid_transition` с текущим статусом в теле; несовпадение `baseStatus` со снимком клиента → 409 `conflict`.
 
 Каждое изменение заявки (создание, назначение, переход статуса) пишется в append-only журнал `order_events` с актором и источником (`api`).
+
+## Фото
+
+- `POST /v1/orders/:id/photos` — multipart-загрузка фотоотчёта (поля `file`, `takenAt`, опционально `comment`; заголовок `Idempotency-Key` обязателен). Первая загрузка → 201, повтор с тем же `Idempotency-Key` и тем же payload → 200 с той же записью (идемпотентность без создания второго объекта в S3); тот же ключ с другим `comment`/`takenAt` → 409 `conflict`. JPEG/PNG/WebP — иначе 415 `unsupported_media_type`; лимит размера `PHOTO_MAX_SIZE_MB` (по умолчанию 10 МБ) — иначе 413 `file_too_large`. Доступ — по правилам заявки (техник только к своей, иначе 404).
+- `GET /v1/photos/:id/file` — 302 с `Location` на presigned URL (TTL `PHOTO_PRESIGN_TTL_SEC`, по умолчанию 600 с). Committed-фото — доступ по правилам заявки; staged — только автору; чужое/несуществующее → 404.
+- Фото загружаются в статусе `staged` и не попадают в `GET /v1/orders/:id`, пока не будут закоммичены мутацией `photo_add` (фаза 5).
+- Зачистка сирот: staged-фото старше `PHOTO_STAGED_TTL_HOURS` (по умолчанию 168 ч = 7 суток) удаляются вместе с объектом в S3 фоновым воркером (интервал `PHOTO_CLEANUP_INTERVAL_MIN`, по умолчанию 60 мин; первый прогон — при старте сервера).
 
 ## Команды
 

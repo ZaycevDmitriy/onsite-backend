@@ -4,10 +4,17 @@ import Fastify from 'fastify';
 import { authRoutes, createAuthService } from '@/modules/auth/index.js';
 import { healthRoutes } from '@/modules/health/index.js';
 import { ordersRoutes } from '@/modules/orders/index.js';
+import { listCommittedPhotosByOrderId, photosRoutes } from '@/modules/photos/index.js';
 import { getActiveUser, usersRoutes } from '@/modules/users/index.js';
 import { dbPlugin } from '@/shared/db/index.js';
 import { errorHandler, notFoundHandler } from '@/shared/errors/index.js';
-import { authPlugin, buildLoggerOptions, genReqId, openapiPlugin } from '@/shared/plugins/index.js';
+import {
+  authPlugin,
+  buildLoggerOptions,
+  genReqId,
+  openapiPlugin,
+  s3Plugin,
+} from '@/shared/plugins/index.js';
 
 import type { IAppConfig } from '@/shared/config/index.js';
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
@@ -29,6 +36,14 @@ export const buildApp = async (config: IAppConfig): Promise<FastifyInstance> => 
   // contentSecurityPolicy отключён только для Swagger UI на /docs.
   await app.register(helmet, { contentSecurityPolicy: false });
   await app.register(dbPlugin, { databaseUrl: config.databaseUrl });
+  await app.register(s3Plugin, {
+    endpoint: config.s3Endpoint,
+    publicEndpoint: config.s3PublicEndpoint,
+    region: config.s3Region,
+    accessKeyId: config.s3AccessKey,
+    secretAccessKey: config.s3SecretKey,
+    bucket: config.s3Bucket,
+  });
   await app.register(openapiPlugin);
 
   // getActiveUser инъецируется из публичного API users: shared не импортирует modules.
@@ -55,7 +70,13 @@ export const buildApp = async (config: IAppConfig): Promise<FastifyInstance> => 
   await app.register(usersRoutes, {
     revokeAllUserSessions: (userId, logger) => authService.revokeAllUserSessions(userId, logger),
   });
-  await app.register(ordersRoutes);
+  // Committed-фото в GET /v1/orders/:id инъецируются из photos: цикла orders ↔ photos нет,
+  // так как orders не импортирует photos напрямую (решение #10).
+  await app.register(ordersRoutes, { listCommittedPhotos: listCommittedPhotosByOrderId });
+  await app.register(photosRoutes, {
+    maxFileSizeBytes: config.photoMaxSizeMb * 1024 * 1024,
+    presignTtlSec: config.photoPresignTtlSec,
+  });
 
   return app;
 };

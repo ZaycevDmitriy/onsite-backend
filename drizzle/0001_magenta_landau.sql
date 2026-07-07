@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "photos_storage_key_unique" ON "photos" USING btree ("storage_key");

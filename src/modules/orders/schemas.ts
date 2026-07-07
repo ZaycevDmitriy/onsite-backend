@@ -98,6 +98,18 @@ export const orderViewSchema = Type.Object({
   updatedAt: Type.String({ format: 'date-time' }),
 });
 
+// Фото в детальном ответе заявки: контракт принадлежит orders, не импортируется из photos —
+// иначе ESM-цикл photos ↔ orders (решение #16).
+const orderPhotoSchema = Type.Object({
+  id: Type.String({ format: 'uuid' }),
+  orderId: Type.String({ format: 'uuid' }),
+  authorId: Type.String({ format: 'uuid' }),
+  status: Type.Union([Type.Literal('staged'), Type.Literal('committed')]),
+  comment: Type.Union([Type.String(), Type.Null()]),
+  takenAt: Type.String({ format: 'date-time' }),
+  createdAt: Type.String({ format: 'date-time' }),
+});
+
 // Событие журнала заявки (FR-15).
 export const orderEventSchema = Type.Object({
   id: Type.Integer(),
@@ -108,10 +120,10 @@ export const orderEventSchema = Type.Object({
   createdAt: Type.String({ format: 'date-time' }),
 });
 
-// Детальный ответ GET /v1/orders/:id: заявка + фото (пусто до фазы 4) + события (решение #4).
+// Детальный ответ GET /v1/orders/:id: заявка + фото + события (решение #4, #10).
 export const orderDetailSchema = Type.Object({
   ...orderViewSchema.properties,
-  photos: Type.Array(Type.Unknown()),
+  photos: Type.Array(orderPhotoSchema),
   events: Type.Array(orderEventSchema),
 });
 

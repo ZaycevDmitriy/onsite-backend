@@ -60,10 +60,35 @@ export interface IOrderEventView {
   createdAt: string;
 }
 
-// Ответ GET /v1/orders/:id: заявка + фото (пусто до фазы 4) + события (решение #4).
+// Фото в детальном ответе заявки: контракт принадлежит orders, структурно совпадает с
+// photos/IPhotoView, но без импорта из photos — иначе ESM-цикл photos ↔ orders (решение #16).
+export interface IOrderPhotoView {
+  id: string;
+  orderId: string;
+  authorId: string;
+  status: 'staged' | 'committed';
+  comment: string | null;
+  takenAt: string;
+  createdAt: string;
+}
+
+// Листер committed-фото заявки: инъецируется composition root'ом из @/modules/photos (решение #10).
+export type IListCommittedPhotos = (
+  db: NodePgDatabase,
+  orderId: string,
+) => Promise<IOrderPhotoView[]>;
+
+// Ответ GET /v1/orders/:id: заявка + фото + события (решение #4, #10).
 export interface IOrderDetailView extends IOrderView {
-  photos: unknown[];
+  photos: IOrderPhotoView[];
   events: IOrderEventView[];
+}
+
+// Лёгкая проекция заявки для проверки доступа соседними модулями (photos, решение #15 фазы 4).
+export interface IOrderAccessInfo {
+  id: string;
+  assignedTo: string | null;
+  status: ServiceOrderStatusEnum;
 }
 
 export interface ICreateOrderInput {
@@ -230,6 +255,7 @@ export const getOrder = async (
   db: NodePgDatabase,
   id: string,
   requester: IOrderRequester,
+  listCommittedPhotos: IListCommittedPhotos,
   logger: FastifyBaseLogger,
 ): Promise<IOrderDetailView> => {
   logger.debug({ orderId: id }, 'получение заявки');
@@ -244,11 +270,31 @@ export const getOrder = async (
     throw new AppError(404, ErrorCodeEnum.NotFound, 'Order not found');
   }
 
-  const events = await findOrderEvents(db, id);
+  const [photos, events] = await Promise.all([
+    listCommittedPhotos(db, id),
+    findOrderEvents(db, id),
+  ]);
 
   logger.info({ orderId: id }, 'заявка получена');
 
-  return { ...toOrderView(row), photos: [], events: events.map(toOrderEventView) };
+  return { ...toOrderView(row), photos, events: events.map(toOrderEventView) };
+};
+
+/**
+ * Лёгкая выборка заявки для проверки доступа соседним модулем (photos): id, assignedTo, status,
+ * без событий — getOrder не подходит инъекции листера фото из-за цикла (решение #15 фазы 4).
+ */
+export const findOrderForAccess = async (
+  db: NodePgDatabase,
+  id: string,
+): Promise<IOrderAccessInfo | null> => {
+  const row = await findOrderById(db, id);
+
+  if (row === null) {
+    return null;
+  }
+
+  return { id: row.id, assignedTo: row.assignedTo, status: row.status };
 };
 
 /**
