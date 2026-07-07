@@ -21,6 +21,11 @@ import type { FastifyBaseLogger } from 'fastify';
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCKOUT_MS = 15 * 60 * 1000;
 
+// Фиктивный argon2id-хеш случайного пароля: выравнивает тайминг ответа
+// для несуществующего email — verify выполняется всегда (защита от enumeration).
+const DUMMY_PASSWORD_HASH =
+  '$argon2id$v=19$m=19456,t=2,p=1$t2dAs7Zp8J1GSMU6CjAdeA$N2/NdYDKrHqnfNjmjtDa4nKhc/D0giytOmwVZSxmq6o';
+
 export interface ITokenPair {
   accessToken: string;
   refreshToken: string;
@@ -52,6 +57,14 @@ const invalidCredentialsError = (): AppError =>
 
 const invalidRefreshError = (): AppError =>
   new AppError(401, ErrorCodeEnum.Unauthorized, 'Invalid refresh token');
+
+// Служебная ошибка для отката транзакции при конкурентной ротации одного токена.
+class ConcurrentRotationError extends Error {
+  constructor() {
+    super('Конкурентная ротация refresh-токена');
+    this.name = 'ConcurrentRotationError';
+  }
+}
 
 /**
  * Фабрика сервиса auth. Состояние лимитера — per-instance:
@@ -110,9 +123,10 @@ export const createAuthService = (options: IAuthServiceOptions): IAuthService =>
       assertNotLocked(normalized);
 
       const record = await findAuthRecordByEmail(db, normalized);
-      // Неизвестный email проверяется тем же путём: ответ и тайминг не раскрывают аккаунт.
-      const passwordValid =
-        record !== null && record.isActive && (await verify(record.passwordHash, password));
+      // Verify выполняется всегда (для неизвестного email — по фиктивному хешу):
+      // ни тело ответа, ни тайминг не раскрывают существование аккаунта.
+      const verified = await verify(record?.passwordHash ?? DUMMY_PASSWORD_HASH, password);
+      const passwordValid = record !== null && record.isActive && verified;
 
       if (!passwordValid) {
         registerFailure(normalized);
@@ -157,16 +171,35 @@ export const createAuthService = (options: IAuthServiceOptions): IAuthService =>
       }
 
       // Ротация атомарно: отзыв старой и выпуск новой сессии в одной транзакции.
+      // Если старую сессию уже отозвала конкурентная ротация — это replay:
+      // транзакция откатывается, семья отзывается целиком (FR-02).
       const newRefreshToken = generateRefreshToken();
-      await db.transaction(async (tx) => {
-        await revokeSessionById(tx, session.id);
-        await insertSession(tx, {
-          userId: session.userId,
-          tokenHash: hashToken(newRefreshToken),
-          familyId: session.familyId,
-          expiresAt: new Date(Date.now() + refreshTokenTtlSec * 1000),
+      try {
+        await db.transaction(async (tx) => {
+          const revoked = await revokeSessionById(tx, session.id);
+
+          if (!revoked) {
+            throw new ConcurrentRotationError();
+          }
+
+          await insertSession(tx, {
+            userId: session.userId,
+            tokenHash: hashToken(newRefreshToken),
+            familyId: session.familyId,
+            expiresAt: new Date(Date.now() + refreshTokenTtlSec * 1000),
+          });
         });
-      });
+      } catch (error) {
+        if (error instanceof ConcurrentRotationError) {
+          await revokeFamilySessions(db, session.familyId);
+          logger.warn(
+            { familyId: session.familyId, userId: session.userId },
+            'конкурентная ротация refresh-токена: семья отозвана',
+          );
+          throw invalidRefreshError();
+        }
+        throw error;
+      }
 
       logger.info({ userId: session.userId }, 'refresh-токен ротирован');
 

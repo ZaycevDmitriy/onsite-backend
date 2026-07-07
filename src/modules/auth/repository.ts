@@ -41,12 +41,19 @@ export const insertSession = async (
   return rows[0] as IRefreshSessionRow;
 };
 
-/** Отзывает одну сессию по id. */
-export const revokeSessionById = async (db: DbClient, id: string): Promise<void> => {
-  await db
+/**
+ * Отзывает одну живую сессию по id.
+ * Возвращает false, если сессия уже отозвана конкурентной ротацией —
+ * вызывающий обязан трактовать это как replay.
+ */
+export const revokeSessionById = async (db: DbClient, id: string): Promise<boolean> => {
+  const revoked = await db
     .update(refreshSessions)
     .set({ revokedAt: new Date() })
-    .where(and(eq(refreshSessions.id, id), isNull(refreshSessions.revokedAt)));
+    .where(and(eq(refreshSessions.id, id), isNull(refreshSessions.revokedAt)))
+    .returning({ id: refreshSessions.id });
+
+  return revoked.length > 0;
 };
 
 /** Отзывает все живые сессии семьи (replay-защита FR-02). */
