@@ -1,3 +1,16 @@
+# [1.3.0](https://github.com/ZaycevDmitriy/onsite-backend/compare/v1.2.0...v1.3.0) (2026-07-07)
+
+
+### Bug Fixes
+
+* устранение замечаний security-аудита фото и лимитера логина ([705e228](https://github.com/ZaycevDmitriy/onsite-backend/commit/705e228bdf3ca9312025418c8525d3c6f3c9c18a))
+
+
+### Features
+
+* домен, схемы, сервис и роуты staged-загрузки фото, выдача через presigned URL и зачистка сирот ([0efa9fe](https://github.com/ZaycevDmitriy/onsite-backend/commit/0efa9fe5cdf762982916655b2e6443ccc5ba5997))
+* конфиг S3, s3-плагин, коды ошибок и unique-индекс storage_key ([58a96a6](https://github.com/ZaycevDmitriy/onsite-backend/commit/58a96a68d2637827d06730212e54c35ebfe615b5))
+
 # [1.2.0](https://github.com/ZaycevDmitriy/onsite-backend/compare/v1.1.0...v1.2.0) (2026-07-07)
 
 
