@@ -306,7 +306,7 @@ export const applyMutationBatch = async (
   for (const mutation of mutations) {
     try {
       const verdict = await db.transaction(async (tx) => {
-        const existing = await findSyncMutationById(tx, mutation.mutationId);
+        const existing = await findSyncMutationById(tx, mutation.mutationId, requester.id);
 
         if (existing !== null) {
           logger.debug({ mutationId: mutation.mutationId }, 'sync: мутация уже обработана');
@@ -332,18 +332,23 @@ export const applyMutationBatch = async (
       verdicts.push(verdict);
     } catch (error) {
       if (isUniqueViolation(error)) {
-        logger.info(
-          { mutationId: mutation.mutationId },
-          'sync: гонка конкурентных батчей — перечитан ранее зафиксированный вердикт',
-        );
+        // Перечитывание скоупится по requester.id: null означает, что mutationId уже занят
+        // другой мутацией (чужой пользователь либо гонка вне видимости) → rejected без раскрытия.
+        const existing = await findSyncMutationById(db, mutation.mutationId, requester.id);
 
-        const existing = await findSyncMutationById(db, mutation.mutationId);
-
-        verdicts.push(
-          existing !== null
-            ? toDuplicateVerdict(existing.response, mutation.mutationId)
-            : { mutationId: mutation.mutationId, result: SyncMutationResultEnum.Rejected },
-        );
+        if (existing !== null) {
+          logger.info(
+            { mutationId: mutation.mutationId },
+            'sync: гонка конкурентных батчей — перечитан ранее зафиксированный вердикт',
+          );
+          verdicts.push(toDuplicateVerdict(existing.response, mutation.mutationId));
+        } else {
+          logger.warn(
+            { mutationId: mutation.mutationId, userId: requester.id },
+            'sync: mutationId занят вердиктом другого пользователя — мутация отклонена',
+          );
+          verdicts.push({ mutationId: mutation.mutationId, result: SyncMutationResultEnum.Rejected });
+        }
         continue;
       }
 

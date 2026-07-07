@@ -362,4 +362,46 @@ describe.runIf(databaseUrl && s3Endpoint)('sync mutations (FR-09/FR-10)', () => 
     const photoRow = (await app.db.select().from(photos).where(eq(photos.id, photo.id)))[0];
     expect(photoRow?.status).toBe('staged');
   });
+
+  it('mutationId чужого пользователя → rejected без раскрытия чужого вердикта', async () => {
+    const techA = await seedUser('technician');
+    const techAToken = await loginAs(techA.email);
+    const techB = await seedUser('technician');
+    const techBToken = await loginAs(techB.email);
+
+    const orderA = await createOrder();
+    await assignTechnician(orderA.id, techA.id);
+    const orderB = await createOrder();
+    await assignTechnician(orderB.id, techB.id);
+
+    // Техник A фиксирует вердикт под mutationId X.
+    const sharedMutationId = randomUUID();
+    const firstVerdicts = await submitMutations(techAToken, [
+      {
+        mutationId: sharedMutationId,
+        type: 'status_change',
+        orderId: orderA.id,
+        to: 'InProgress',
+        baseStatus: 'New',
+      },
+    ]);
+    expect(firstVerdicts[0]?.result).toBe('applied');
+
+    // Техник B переиспользует тот же mutationId: не duplicate с чужим снимком, а rejected.
+    const secondVerdicts = await submitMutations(techBToken, [
+      {
+        mutationId: sharedMutationId,
+        type: 'status_change',
+        orderId: orderB.id,
+        to: 'InProgress',
+        baseStatus: 'New',
+      },
+    ]);
+    expect(secondVerdicts[0]?.result).toBe('rejected');
+    expect(secondVerdicts[0]?.order).toBeUndefined();
+
+    // Транзакция мутации B откатилась: его заявка осталась в New.
+    const orderBRow = (await app.db.select().from(orders).where(eq(orders.id, orderB.id)))[0];
+    expect(orderBRow?.status).toBe('New');
+  });
 });

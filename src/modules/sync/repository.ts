@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 
 import { syncMutations } from './db-schema.js';
 
@@ -18,15 +18,20 @@ export interface IInsertSyncMutationInput {
   response: unknown;
 }
 
-/** Ищет ранее обработанную мутацию по mutationId (идемпотентность, FR-09). */
+/**
+ * Ищет ранее обработанную мутацию по mutationId в пределах пользователя (идемпотентность, FR-09).
+ * Скоупинг по userId обязателен: чужой mutationId не должен раскрывать сохранённый вердикт
+ * со снимком чужой заявки (см. security-аудит фазы 5).
+ */
 export const findSyncMutationById = async (
   db: DbClient,
   mutationId: string,
+  userId: string,
 ): Promise<ISyncMutationRow | null> => {
   const rows = await db
     .select()
     .from(syncMutations)
-    .where(eq(syncMutations.mutationId, mutationId))
+    .where(and(eq(syncMutations.mutationId, mutationId), eq(syncMutations.userId, userId)))
     .limit(1);
 
   return rows[0] ?? null;
