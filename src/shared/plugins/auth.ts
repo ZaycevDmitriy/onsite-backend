@@ -68,7 +68,13 @@ export const authPlugin = fp<IAuthPluginOptions>(
         iss: JWT_ISSUER,
         aud: JWT_AUDIENCE,
       },
-      verify: { allowedIss: JWT_ISSUER, allowedAud: JWT_AUDIENCE },
+      // requiredClaims обязателен: allowedIss/allowedAud в fast-jwt проверяют клейм,
+      // только если он присутствует — токен без iss/aud иначе прошёл бы верификацию.
+      verify: {
+        allowedIss: JWT_ISSUER,
+        allowedAud: JWT_AUDIENCE,
+        requiredClaims: ['iss', 'aud'],
+      },
     });
 
     app.decorate('authenticate', async (request: FastifyRequest) => {

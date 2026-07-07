@@ -101,6 +101,8 @@ S3_SECRET_KEY=minioadmin \
 
 `compose.production.yml` — полный self-host стек: Caddy (reverse-proxy с авто-TLS через Let's Encrypt) → api, PostgreSQL, MinIO, Prometheus (алёрт-правило на долю 5xx-ответов), ежедневные бэкапы `pg_dump` + бакета фото. Демо-сид (`npm run seed`) в проде не запускается. Подробности — в `deploy/` (Caddyfile, конфиг Prometheus, скрипты бэкапов) и `.env.production.example`.
 
+> Примечание к обновлению до этой версии: верификация JWT теперь требует клеймы `iss`/`aud` — access-токены, выпущенные предыдущими версиями, разово получат 401; клиент штатно обновит их через refresh.
+
 ## Команды
 
 | Команда                    | Назначение                                            |

@@ -13,6 +13,20 @@ if (process.env.NODE_ENV === 'production') {
   process.exit(1);
 }
 
+// Defense-in-depth: даже без NODE_ENV сид допускает только локальные хосты БД dev-контура —
+// запуск из dev-шелла с продовым DATABASE_URL отклоняется. Непарсируемый URL отдаётся loadConfig.
+const ALLOWED_SEED_DB_HOSTS = new Set(['localhost', '127.0.0.1', 'postgres']);
+const databaseUrl = process.env.DATABASE_URL;
+
+if (
+  databaseUrl !== undefined &&
+  URL.canParse(databaseUrl) &&
+  !ALLOWED_SEED_DB_HOSTS.has(new URL(databaseUrl).hostname)
+) {
+  process.stderr.write('Сид запрещён: хост БД не из локального dev-контура.\n');
+  process.exit(1);
+}
+
 // Точка входа сида: npm run seed. JWT-ключи сиду не нужны — эпемерная пара для конфига.
 const config = loadConfig({ ...makeEphemeralJwtEnv(), ...process.env });
 const logger = pino({ level: config.logLevel });
