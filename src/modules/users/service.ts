@@ -60,6 +60,20 @@ export interface IUpdateUserResult {
 /** Нормализует email: трим и нижний регистр. */
 export const normalizeEmail = (email: string): string => email.trim().toLowerCase();
 
+// Код unique-констрейнта PostgreSQL.
+const PG_UNIQUE_VIOLATION = '23505';
+
+/** Проверяет, что ошибка (или её cause) — нарушение unique-констрейнта PostgreSQL. */
+const isUniqueViolation = (error: unknown): boolean => {
+  for (let current = error; current instanceof Error; current = current.cause) {
+    if ((current as { code?: unknown }).code === PG_UNIQUE_VIOLATION) {
+      return true;
+    }
+  }
+
+  return false;
+};
+
 const toUserView = (row: IUserRow): IUserView => ({
   id: row.id,
   email: row.email,
@@ -114,12 +128,23 @@ export const createUser = async (
   }
 
   const passwordHash = await hash(input.password);
-  const row = await insertUser(db, {
-    email,
-    passwordHash,
-    role: input.role,
-    displayName: input.displayName,
-  });
+
+  let row: IUserRow;
+  try {
+    row = await insertUser(db, {
+      email,
+      passwordHash,
+      role: input.role,
+      displayName: input.displayName,
+    });
+  } catch (error) {
+    // Конкурентное создание с тем же email: unique-констрейнт БД → 409, не 500.
+    if (isUniqueViolation(error)) {
+      logger.debug('email занят (unique-констрейнт при конкурентной вставке)');
+      throw new AppError(409, ErrorCodeEnum.EmailTaken, 'Email is already taken');
+    }
+    throw error;
+  }
 
   logger.info({ userId: row.id, role: row.role }, 'пользователь создан');
 
