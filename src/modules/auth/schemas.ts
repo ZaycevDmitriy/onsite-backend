@@ -6,9 +6,10 @@ export const loginBodySchema = Type.Object({
   password: Type.String({ minLength: 1, maxLength: 1024 }),
 });
 
-// Тело refresh/logout: непрозрачный refresh-токен.
+// Тело refresh/logout: непрозрачный refresh-токен (32 случайных байта в base64url — ~43 символа,
+// запас до 512 не позволяет неаутентифицированному запросу гонять по хешу многомегабайтные строки).
 export const refreshBodySchema = Type.Object({
-  refreshToken: Type.String({ minLength: 1 }),
+  refreshToken: Type.String({ minLength: 1, maxLength: 512 }),
 });
 
 // Ответ с парой токенов.

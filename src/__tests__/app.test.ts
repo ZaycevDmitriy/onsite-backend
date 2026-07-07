@@ -29,6 +29,7 @@ describe('buildApp: конверт ошибок', () => {
     app.get('/test/boom', () => {
       throw new Error('секретная внутренняя ошибка');
     });
+    app.get('/test/ip', (request) => ({ ip: request.ip }));
     await app.ready();
   });
 
@@ -88,4 +89,18 @@ describe('buildApp: конверт ошибок', () => {
 
     expect(response.statusCode).toBe(404);
   });
+
+  it(
+    'trustProxy: request.ip читается из X-Forwarded-For (OWASP-аудит T-10, ' +
+      'иначе rate limiting за Caddy схлопывается в одну корзину на всех клиентов)',
+    async () => {
+      const response = await app.inject({
+        method: 'GET',
+        url: '/test/ip',
+        headers: { 'x-forwarded-for': '203.0.113.7' },
+      });
+
+      expect(response.json<{ ip: string }>().ip).toBe('203.0.113.7');
+    },
+  );
 });

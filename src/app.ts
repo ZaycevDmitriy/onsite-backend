@@ -49,6 +49,9 @@ export const buildApp = async (config: IAppConfig): Promise<FastifyInstance> => 
   const options: FastifyServerOptions = {
     logger: buildLoggerOptions(config),
     genReqId,
+    // За reverse-proxy (Caddy, решение #6 фазы 6) req.ip иначе всегда = IP прокси: rate limiting
+    // по IP (T-17) схлопнется в одну корзину на всех клиентов (OWASP API8, находка аудита T-19).
+    trustProxy: true,
   };
   const app = Fastify(options).withTypeProvider<TypeBoxTypeProvider>();
 
