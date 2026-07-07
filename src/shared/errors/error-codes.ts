@@ -10,5 +10,7 @@ export const ErrorCodeEnum = {
   TooManyAttempts: 'too_many_attempts',
   EmailTaken: 'email_taken',
   InternalError: 'internal_error',
+  FileTooLarge: 'file_too_large',
+  UnsupportedMediaType: 'unsupported_media_type',
 } as const;
 export type ErrorCodeEnum = (typeof ErrorCodeEnum)[keyof typeof ErrorCodeEnum];

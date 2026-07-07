@@ -7,7 +7,13 @@ import { ordersRoutes } from '@/modules/orders/index.js';
 import { getActiveUser, usersRoutes } from '@/modules/users/index.js';
 import { dbPlugin } from '@/shared/db/index.js';
 import { errorHandler, notFoundHandler } from '@/shared/errors/index.js';
-import { authPlugin, buildLoggerOptions, genReqId, openapiPlugin } from '@/shared/plugins/index.js';
+import {
+  authPlugin,
+  buildLoggerOptions,
+  genReqId,
+  openapiPlugin,
+  s3Plugin,
+} from '@/shared/plugins/index.js';
 
 import type { IAppConfig } from '@/shared/config/index.js';
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
@@ -29,6 +35,14 @@ export const buildApp = async (config: IAppConfig): Promise<FastifyInstance> => 
   // contentSecurityPolicy отключён только для Swagger UI на /docs.
   await app.register(helmet, { contentSecurityPolicy: false });
   await app.register(dbPlugin, { databaseUrl: config.databaseUrl });
+  await app.register(s3Plugin, {
+    endpoint: config.s3Endpoint,
+    publicEndpoint: config.s3PublicEndpoint,
+    region: config.s3Region,
+    accessKeyId: config.s3AccessKey,
+    secretAccessKey: config.s3SecretKey,
+    bucket: config.s3Bucket,
+  });
   await app.register(openapiPlugin);
 
   // getActiveUser инъецируется из публичного API users: shared не импортирует modules.

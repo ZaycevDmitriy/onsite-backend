@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { check, index, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import { check, index, pgTable, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
 
 // Импорт чужой db-schema допустим только на уровне схемы — для FK-ссылок.
 import { orders } from '../orders/db-schema.js';
@@ -34,6 +34,8 @@ export const photos = pgTable(
   },
   (table) => [
     index('photos_order_id_idx').on(table.orderId),
+    // Идемпотентность загрузки: storage_key детерминирован по (orderId, authorId, Idempotency-Key) (решение #1, #2).
+    uniqueIndex('photos_storage_key_unique').on(table.storageKey),
     check('photos_status_check', sql`${table.status} in ('staged', 'committed')`),
   ],
 );

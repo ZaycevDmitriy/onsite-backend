@@ -18,6 +18,10 @@ const validEnv = {
   DATABASE_URL: 'postgres://onsite:onsite@localhost:5432/onsite',
   JWT_PRIVATE_KEY: toBase64(privateKey),
   JWT_PUBLIC_KEY: toBase64(publicKey),
+  S3_ENDPOINT: 'http://localhost:9000',
+  S3_ACCESS_KEY: 'minioadmin',
+  S3_SECRET_KEY: 'minioadmin',
+  S3_BUCKET: 'onsite-photos',
 };
 
 describe('loadConfig', () => {
@@ -34,7 +38,36 @@ describe('loadConfig', () => {
       jwtPublicKey: publicKey,
       accessTokenTtlSec: 900,
       refreshTokenTtlSec: 2592000,
+      s3Endpoint: 'http://localhost:9000',
+      s3PublicEndpoint: 'http://localhost:9000',
+      s3Region: 'us-east-1',
+      s3AccessKey: 'minioadmin',
+      s3SecretKey: 'minioadmin',
+      s3Bucket: 'onsite-photos',
+      photoMaxSizeMb: 10,
+      photoPresignTtlSec: 600,
+      photoStagedTtlHours: 168,
+      photoCleanupIntervalMin: 60,
     });
+  });
+
+  it('использует S3_ENDPOINT как публичный эндпоинт по умолчанию', () => {
+    const config = loadConfig(validEnv);
+
+    expect(config.s3PublicEndpoint).toBe(validEnv.S3_ENDPOINT);
+  });
+
+  it('использует S3_PUBLIC_ENDPOINT, если он задан', () => {
+    const config = loadConfig({ ...validEnv, S3_PUBLIC_ENDPOINT: 'http://public.example.com' });
+
+    expect(config.s3PublicEndpoint).toBe('http://public.example.com');
+  });
+
+  it('падает без обязательных S3-полей', () => {
+    const withoutS3: Record<string, string> = { ...validEnv };
+    delete withoutS3['S3_ENDPOINT'];
+
+    expect(() => loadConfig(withoutS3)).toThrow(ConfigError);
   });
 
   it('конвертирует PORT из строки в число', () => {

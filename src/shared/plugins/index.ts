@@ -8,3 +8,4 @@ export {
   type IAuthenticatedUser,
   type IAuthPluginOptions,
 } from './auth.js';
+export { s3Plugin, type IS3Decoration, type IS3PluginOptions } from './s3.js';
