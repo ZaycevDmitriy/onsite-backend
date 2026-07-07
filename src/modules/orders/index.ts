@@ -36,6 +36,7 @@ export {
   type IUnassignedTombstoneView,
   type IUpdateOrderInput,
 } from './service.js';
+export { getCurrentSyncSeq } from './repository.js';
 export type {
   IListOrdersForSyncFilters,
   IListUnassignedTombstonesFilters,

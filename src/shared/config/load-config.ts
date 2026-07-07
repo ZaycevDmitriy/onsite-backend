@@ -25,6 +25,7 @@ export interface IAppConfig {
   photoPresignTtlSec: number;
   photoStagedTtlHours: number;
   photoCleanupIntervalMin: number;
+  syncSafetyLag: number;
 }
 
 // Ошибка конфигурации: процесс обязан упасть при старте, значения env в сообщение не попадают.
@@ -74,6 +75,7 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): IAppConfig => 
     photoPresignTtlSec: parsed.PHOTO_PRESIGN_TTL_SEC,
     photoStagedTtlHours: parsed.PHOTO_STAGED_TTL_HOURS,
     photoCleanupIntervalMin: parsed.PHOTO_CLEANUP_INTERVAL_MIN,
+    syncSafetyLag: parsed.SYNC_SAFETY_LAG,
   };
 };
 

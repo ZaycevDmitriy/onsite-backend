@@ -66,6 +66,8 @@ export const envSchema = Type.Object({
   PHOTO_STAGED_TTL_HOURS: Type.Number({ minimum: 1, default: 168 }),
   // Интервал запуска зачистки сирот в минутах (T-13).
   PHOTO_CLEANUP_INTERVAL_MIN: Type.Number({ minimum: 1, default: 60 }),
+  // Safety-lag курсора pull-синхронизации в единицах sync_seq (FR-08, NFR-08, решение #1 фазы 5).
+  SYNC_SAFETY_LAG: Type.Number({ minimum: 0, default: 100 }),
 });
 
 export type IEnv = Static<typeof envSchema>;

@@ -3,8 +3,18 @@ import Fastify from 'fastify';
 
 import { authRoutes, createAuthService } from '@/modules/auth/index.js';
 import { healthRoutes } from '@/modules/health/index.js';
-import { ordersRoutes } from '@/modules/orders/index.js';
-import { listCommittedPhotosByOrderId, photosRoutes } from '@/modules/photos/index.js';
+import {
+  getCurrentSyncSeq,
+  listOrdersForSync,
+  listUnassignedTombstones,
+  ordersRoutes,
+} from '@/modules/orders/index.js';
+import {
+  listCommittedPhotosByOrderId,
+  listCommittedPhotosByOrderIds,
+  photosRoutes,
+} from '@/modules/photos/index.js';
+import { syncRoutes } from '@/modules/sync/index.js';
 import { getActiveUser, usersRoutes } from '@/modules/users/index.js';
 import { dbPlugin } from '@/shared/db/index.js';
 import { errorHandler, notFoundHandler } from '@/shared/errors/index.js';
@@ -76,6 +86,14 @@ export const buildApp = async (config: IAppConfig): Promise<FastifyInstance> => 
   await app.register(photosRoutes, {
     maxFileSizeBytes: config.photoMaxSizeMb * 1024 * 1024,
     presignTtlSec: config.photoPresignTtlSec,
+  });
+  // Pull-синхронизация: заявки/tombstone — из orders, фото батчем — из photos (решение #7 фазы 5).
+  await app.register(syncRoutes, {
+    listOrdersForSync,
+    listUnassignedTombstones,
+    getCurrentSyncSeq,
+    listCommittedPhotosByOrderIds,
+    safetyLag: config.syncSafetyLag,
   });
 
   return app;

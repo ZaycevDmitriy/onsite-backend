@@ -48,6 +48,7 @@ describe('loadConfig', () => {
       photoPresignTtlSec: 600,
       photoStagedTtlHours: 168,
       photoCleanupIntervalMin: 60,
+      syncSafetyLag: 100,
     });
   });
 

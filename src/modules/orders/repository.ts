@@ -118,6 +118,18 @@ export const updateOrderById = async (
   return rows[0] ?? null;
 };
 
+/**
+ * Текущее (последнее выданное) значение общей последовательности sync_seq (решение #1 фазы 5) —
+ * основа safety-lag курсора pull. last_value обновляется немедленно, вне транзакций — это
+ * намеренно: лаг далее компенсирует возможность увидеть значение ещё не закоммиченной строки.
+ */
+export const getCurrentSyncSeq = async (db: DbClient): Promise<number> => {
+  const result = await db.execute<{ last_value: string }>(sql`select last_value from sync_seq`);
+  const row = result.rows[0];
+
+  return row !== undefined ? Number(row.last_value) : 0;
+};
+
 /** Keyset-список заявок по (created_at DESC, id DESC) с фильтрами (решение #5). */
 export const listOrders = async (
   db: DbClient,
