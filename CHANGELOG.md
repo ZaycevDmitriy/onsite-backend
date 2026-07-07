@@ -1,3 +1,17 @@
+# [1.2.0](https://github.com/ZaycevDmitriy/onsite-backend/compare/v1.1.0...v1.2.0) (2026-07-07)
+
+
+### Bug Fixes
+
+* замечания ревью фазы 3 — FOR SHARE при назначении и nullable-координаты в PATCH ([98299d3](https://github.com/ZaycevDmitriy/onsite-backend/commit/98299d32240172c9a5d3acdcc96a3bacb06673ab))
+* запрет самодеактивации диспетчера в PATCH /v1/users/:id ([08a8afe](https://github.com/ZaycevDmitriy/onsite-backend/commit/08a8afe119bda44f6d39a05d6fd82ec8954dc4fb))
+
+
+### Features
+
+* CRUD заявок, назначение с историей и автомат статусов ([7636a1a](https://github.com/ZaycevDmitriy/onsite-backend/commit/7636a1a5a5ca1c9027d4f23c5cbfa406dae79f6c))
+* домен, схемы и repository модуля заявок ([8480a23](https://github.com/ZaycevDmitriy/onsite-backend/commit/8480a235bce179c6e35b9fb937f87b8d8c519bb2))
+
 # [1.1.0](https://github.com/ZaycevDmitriy/onsite-backend/compare/v1.0.1...v1.1.0) (2026-07-07)
 
 
