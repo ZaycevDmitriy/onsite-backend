@@ -461,6 +461,41 @@ export const applySyncTransition = async (
   return { result: 'applied', order: toOrderView(updated as IOrderRow) };
 };
 
+/**
+ * Записывает событие photo_added и сдвигает updated_seq заявки (мутация photo_add sync, §5.6,
+ * решение #6 фазы 5): вызывается внутри транзакции мутации sync (tx как DbClient) — order_events
+ * принадлежит orders, поэтому sync не пишет в него напрямую. null — заявка не найдена.
+ */
+export const recordSyncPhotoAdded = async (
+  db: DbClient,
+  orderId: string,
+  actorId: string,
+  photoId: string,
+  logger: FastifyBaseLogger,
+): Promise<IOrderView | null> => {
+  logger.debug({ orderId, photoId }, 'sync: запись события photo_added');
+
+  await insertOrderEvent(db, {
+    orderId,
+    actorId,
+    type: OrderEventTypeEnum.PhotoAdded,
+    payload: { photoId },
+    source: 'sync',
+  });
+
+  const updated = await updateOrderById(db, orderId, {});
+
+  if (updated === null) {
+    logger.debug({ orderId }, 'sync: событие photo_added записано, но заявка не найдена');
+
+    return null;
+  }
+
+  logger.info({ orderId, photoId }, 'sync: событие photo_added записано, updated_seq сдвинут');
+
+  return toOrderView(updated);
+};
+
 /** Правит поля заявки (dispatcher); статус — только через transition; Done/Cancelled → 409. */
 export const updateOrder = async (
   db: NodePgDatabase,

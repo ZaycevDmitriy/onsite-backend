@@ -251,15 +251,16 @@ export const listCommittedPhotosByOrderId = async (
 };
 
 /**
- * Ищет staged-фото по id — используется мутацией photo_add (sync) перед коммитом.
+ * Ищет staged-фото по id — используется мутацией photo_add (sync) перед коммитом внутри
+ * транзакции мутации (принимает tx как DbClient). null — не найдено или уже не staged.
  */
 export const findStagedPhotoForCommit = async (
-  db: NodePgDatabase,
+  db: DbClient,
   id: string,
-): Promise<IPhotoRow | null> => {
+): Promise<IPhotoView | null> => {
   const row = await findPhotoById(db, id);
 
-  return row !== null && row.status === PhotoStatusEnum.Staged ? row : null;
+  return row !== null && row.status === PhotoStatusEnum.Staged ? toPhotoView(row) : null;
 };
 
 /**

@@ -25,8 +25,8 @@ const syncPhotoSchema = Type.Object({
   createdAt: Type.String({ format: 'date-time' }),
 });
 
-// Заявка в pull-элементе: контракт принадлежит sync, мирроринг IOrderView + committed-фото.
-const syncOrderPayloadSchema = Type.Object({
+// Заявка: контракт принадлежит sync, мирроринг IOrderView (без импорта схемы из orders).
+const syncOrderViewSchema = Type.Object({
   id: Type.String({ format: 'uuid' }),
   status: orderStatusSchema,
   title: Type.String(),
@@ -42,6 +42,11 @@ const syncOrderPayloadSchema = Type.Object({
   updatedSeq: Type.Integer(),
   createdAt: Type.String({ format: 'date-time' }),
   updatedAt: Type.String({ format: 'date-time' }),
+});
+
+// Заявка в pull-элементе: заявка + committed-фото (решение #2 фазы 5).
+const syncOrderPayloadSchema = Type.Object({
+  ...syncOrderViewSchema.properties,
   photos: Type.Array(syncPhotoSchema),
 });
 
@@ -69,4 +74,44 @@ export const syncPullQuerySchema = Type.Object({
 export const syncPullResponseSchema = Type.Object({
   items: Type.Array(syncPullItemSchema),
   nextCursor: Type.Integer({ minimum: 0 }),
+});
+
+// Мутации: id/orderId/photoId — без format:'uuid' — кросс-полевые проверки (в т.ч. формат uuid)
+// делает сервис с вердиктом rejected, а не AJV с 422 на весь батч (решение #8 фазы 5).
+const statusChangeMutationSchema = Type.Object({
+  mutationId: Type.String({ minLength: 1 }),
+  type: Type.Literal('status_change'),
+  orderId: Type.String({ minLength: 1 }),
+  to: orderStatusSchema,
+  baseStatus: orderStatusSchema,
+});
+
+const photoAddMutationSchema = Type.Object({
+  mutationId: Type.String({ minLength: 1 }),
+  type: Type.Literal('photo_add'),
+  orderId: Type.String({ minLength: 1 }),
+  photoId: Type.String({ minLength: 1 }),
+});
+
+const syncMutationSchema = Type.Union([statusChangeMutationSchema, photoAddMutationSchema]);
+
+export const syncMutationsBodySchema = Type.Object({
+  mutations: Type.Array(syncMutationSchema, { minItems: 1, maxItems: 500 }),
+});
+
+const syncMutationResultSchema = Type.Union([
+  Type.Literal('applied'),
+  Type.Literal('duplicate'),
+  Type.Literal('conflict'),
+  Type.Literal('rejected'),
+]);
+
+const syncMutationVerdictSchema = Type.Object({
+  mutationId: Type.String(),
+  result: syncMutationResultSchema,
+  order: Type.Optional(syncOrderViewSchema),
+});
+
+export const syncMutationsResponseSchema = Type.Object({
+  verdicts: Type.Array(syncMutationVerdictSchema),
 });

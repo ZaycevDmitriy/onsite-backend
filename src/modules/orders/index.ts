@@ -18,6 +18,7 @@ export {
   listOrders,
   listOrdersForSync,
   listUnassignedTombstones,
+  recordSyncPhotoAdded,
   transitionOrder,
   updateOrder,
   type IAssignOrderInput,

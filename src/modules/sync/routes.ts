@@ -1,15 +1,20 @@
 import { errorEnvelopeSchema } from '@/shared/errors/index.js';
 
-import { syncPullQuerySchema, syncPullResponseSchema } from './schemas.js';
-import { pullSync } from './service.js';
+import {
+  syncMutationsBodySchema,
+  syncMutationsResponseSchema,
+  syncPullQuerySchema,
+  syncPullResponseSchema,
+} from './schemas.js';
+import { applyMutationBatch, pullSync } from './service.js';
 
-import type { IPullSyncDeps } from './service.js';
+import type { IApplyMutationBatchDeps, IPullSyncDeps } from './service.js';
 import type { FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
 
 // Дефолтный размер страницы pull, если limit не передан в query.
 const DEFAULT_PULL_LIMIT = 200;
 
-export interface ISyncRoutesOptions extends IPullSyncDeps {
+export interface ISyncRoutesOptions extends IPullSyncDeps, IApplyMutationBatchDeps {
   // Safety-lag курсора pull из конфига (SYNC_SAFETY_LAG, решение #1 фазы 5).
   safetyLag: number;
 }
@@ -45,6 +50,35 @@ export const syncRoutes: FastifyPluginAsyncTypebox<ISyncRoutesOptions> =
           options,
           request.log,
         );
+      },
+    );
+
+    app.post(
+      '/v1/sync/mutations',
+      {
+        preHandler: technicianOnly,
+        schema: {
+          tags: ['sync'],
+          security: [{ bearerAuth: [] }],
+          body: syncMutationsBodySchema,
+          response: {
+            200: syncMutationsResponseSchema,
+            401: errorEnvelopeSchema,
+            403: errorEnvelopeSchema,
+            422: errorEnvelopeSchema,
+          },
+        },
+      },
+      async (request) => {
+        const verdicts = await applyMutationBatch(
+          app.db,
+          request.body.mutations,
+          request.user,
+          options,
+          request.log,
+        );
+
+        return { verdicts };
       },
     );
   };

@@ -4,12 +4,16 @@ import Fastify from 'fastify';
 import { authRoutes, createAuthService } from '@/modules/auth/index.js';
 import { healthRoutes } from '@/modules/health/index.js';
 import {
+  applySyncTransition,
   getCurrentSyncSeq,
   listOrdersForSync,
   listUnassignedTombstones,
   ordersRoutes,
+  recordSyncPhotoAdded,
 } from '@/modules/orders/index.js';
 import {
+  commitStagedPhoto,
+  findStagedPhotoForCommit,
   listCommittedPhotosByOrderId,
   listCommittedPhotosByOrderIds,
   photosRoutes,
@@ -87,13 +91,17 @@ export const buildApp = async (config: IAppConfig): Promise<FastifyInstance> => 
     maxFileSizeBytes: config.photoMaxSizeMb * 1024 * 1024,
     presignTtlSec: config.photoPresignTtlSec,
   });
-  // Pull-синхронизация: заявки/tombstone — из orders, фото батчем — из photos (решение #7 фазы 5).
+  // Синк: pull/мутации — из orders/photos инъекциями, sync не импортирует их напрямую (решение #7 фазы 5).
   await app.register(syncRoutes, {
     listOrdersForSync,
     listUnassignedTombstones,
     getCurrentSyncSeq,
     listCommittedPhotosByOrderIds,
     safetyLag: config.syncSafetyLag,
+    applySyncTransition,
+    findStagedPhotoForCommit,
+    commitStagedPhoto,
+    recordSyncPhotoAdded,
   });
 
   return app;
