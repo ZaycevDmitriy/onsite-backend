@@ -8,6 +8,9 @@ import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 // Строка таблицы users как её видит Drizzle.
 export type IUserRow = typeof users.$inferSelect;
 
+// Транзакционный или обычный клиент Drizzle — locking-чтения вызываются из чужих транзакций.
+export type DbClient = NodePgDatabase | Parameters<Parameters<NodePgDatabase['transaction']>[0]>[0];
+
 export interface IInsertUserInput {
   email: string;
   passwordHash: string;
@@ -27,6 +30,16 @@ export const findUserById = async (
   id: string,
 ): Promise<IUserRow | null> => {
   const rows = await db.select().from(users).where(eq(users.id, id)).limit(1);
+
+  return rows[0] ?? null;
+};
+
+/**
+ * Ищет пользователя по id с блокировкой строки (SELECT ... FOR SHARE).
+ * Вызывать только внутри транзакции: конкурентный UPDATE строки ждёт её коммита.
+ */
+export const findUserByIdForShare = async (db: DbClient, id: string): Promise<IUserRow | null> => {
+  const rows = await db.select().from(users).where(eq(users.id, id)).for('share').limit(1);
 
   return rows[0] ?? null;
 };

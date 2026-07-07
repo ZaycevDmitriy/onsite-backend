@@ -185,6 +185,22 @@ describe.runIf(databaseUrl)('модуль заявок', () => {
       expect(updated.updatedSeq).toBeGreaterThan(order.updatedSeq);
     });
 
+    it('PATCH c null снимает координаты', async () => {
+      const order = await createOrder();
+
+      const response = await app.inject({
+        method: 'PATCH',
+        url: `/v1/orders/${order.id}`,
+        headers: authHeaders(dispatcherToken),
+        payload: { latitude: null, longitude: null },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const updated = response.json<{ latitude: number | null; longitude: number | null }>();
+      expect(updated.latitude).toBeNull();
+      expect(updated.longitude).toBeNull();
+    });
+
     it('PATCH на завершённую заявку → 409', async () => {
       const order = await createOrder();
 
@@ -455,7 +471,7 @@ describe.runIf(databaseUrl)('модуль заявок', () => {
   });
 
   describe('доступ по ролям и история событий (FR-03, FR-15)', () => {
-    it('чужая заявка для технику → 404 (GET), список — только свои', async () => {
+    it('чужая заявка для техника → 404 (GET), список — только свои', async () => {
       const order = await createOrder();
       const owner = await seedUser('technician');
       const stranger = await seedUser('technician');

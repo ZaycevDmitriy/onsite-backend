@@ -3,6 +3,11 @@ import { Type } from 'typebox';
 import { OrderEventTypeEnum } from './db-schema.js';
 import { ServiceOrderStatusEnum } from './domain.js';
 
+// Nullable-число для тел запросов: type: ['number','null'] вместо anyOf —
+// AJV с coerceTypes в anyOf коэрсит null в 0 по первой ветке, с массивом типов — нет.
+const nullableNumberSchema = (minimum: number, maximum: number) =>
+  Type.Unsafe<number | null>({ type: ['number', 'null'], minimum, maximum });
+
 const orderStatusSchema = Type.Union([
   Type.Literal(ServiceOrderStatusEnum.New),
   Type.Literal(ServiceOrderStatusEnum.InProgress),
@@ -44,8 +49,9 @@ export const updateOrderBodySchema = Type.Object(
     scheduledAt: Type.Optional(orderFieldsSchema.scheduledAt),
     slotStart: Type.Optional(orderFieldsSchema.slotStart),
     slotEnd: Type.Optional(orderFieldsSchema.slotEnd),
-    latitude: orderFieldsSchema.latitude,
-    longitude: orderFieldsSchema.longitude,
+    // null снимает координату: заявку можно «убрать с карты».
+    latitude: Type.Optional(nullableNumberSchema(-90, 90)),
+    longitude: Type.Optional(nullableNumberSchema(-180, 180)),
   },
   { minProperties: 1 },
 );

@@ -5,8 +5,10 @@ import { AppError, ErrorCodeEnum } from '@/shared/errors/index.js';
 import {
   findUserByEmail,
   findUserById,
+  findUserByIdForShare,
   insertUser,
   updateUserById,
+  type DbClient,
   type IUserRow,
 } from './repository.js';
 
@@ -89,6 +91,23 @@ export const getActiveUser = async (
   userId: string,
 ): Promise<IActiveUser | null> => {
   const row = await findUserById(db, userId);
+
+  if (row === null || !row.isActive) {
+    return null;
+  }
+
+  return { id: row.id, role: row.role };
+};
+
+/**
+ * Возвращает активного пользователя с блокировкой строки FOR SHARE.
+ * Вызывать внутри транзакции соседа: конкурентная деактивация ждёт её коммита (без TOCTOU).
+ */
+export const getActiveUserForShare = async (
+  db: DbClient,
+  userId: string,
+): Promise<IActiveUser | null> => {
+  const row = await findUserByIdForShare(db, userId);
 
   if (row === null || !row.isActive) {
     return null;

@@ -5,6 +5,7 @@ export {
   createUser,
   findAuthRecordByEmail,
   getActiveUser,
+  getActiveUserForShare,
   normalizeEmail,
   updateUser,
   type IActiveUser,

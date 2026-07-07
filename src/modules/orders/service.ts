@@ -1,4 +1,4 @@
-import { getActiveUser, UserRoleEnum } from '@/modules/users/index.js';
+import { getActiveUserForShare, UserRoleEnum } from '@/modules/users/index.js';
 import { AppError, ErrorCodeEnum } from '@/shared/errors/index.js';
 
 import { OrderEventTypeEnum } from './db-schema.js';
@@ -86,8 +86,9 @@ export interface IUpdateOrderInput {
   scheduledAt?: string;
   slotStart?: string;
   slotEnd?: string;
-  latitude?: number;
-  longitude?: number;
+  // null снимает координату.
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 export interface IAssignOrderInput {
@@ -348,21 +349,22 @@ export const assignOrder = async (
 ): Promise<IOrderView> => {
   logger.debug({ orderId: id, technicianId: input.technicianId }, 'назначение заявки');
 
-  const technician = await getActiveUser(db, input.technicianId);
-
-  if (technician === null || technician.role !== UserRoleEnum.Technician) {
-    logger.debug(
-      { technicianId: input.technicianId },
-      'назначение отклонено: техник не найден или неактивен',
-    );
-    throw new AppError(422, ErrorCodeEnum.ValidationFailed, 'Technician not found or inactive');
-  }
-
   const row = await db.transaction(async (tx) => {
     const current = await findOrderByIdForUpdate(tx, id);
 
     if (current === null) {
       throw new AppError(404, ErrorCodeEnum.NotFound, 'Order not found');
+    }
+
+    // FOR SHARE на строке пользователя: конкурентная деактивация ждёт коммита назначения (без TOCTOU).
+    const technician = await getActiveUserForShare(tx, input.technicianId);
+
+    if (technician === null || technician.role !== UserRoleEnum.Technician) {
+      logger.debug(
+        { technicianId: input.technicianId },
+        'назначение отклонено: техник не найден или неактивен',
+      );
+      throw new AppError(422, ErrorCodeEnum.ValidationFailed, 'Technician not found or inactive');
     }
 
     if (!canAssign(current.status)) {
