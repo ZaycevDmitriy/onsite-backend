@@ -4,7 +4,7 @@ REST API для [Onsite](https://github.com/ZaycevDmitriy/field-service-crm) —
 
 **Стек:** Node.js 24 · Fastify 5 (TypeBox) · PostgreSQL 16 (Drizzle) · MinIO/S3 · Docker Compose.
 
-**Статус:** Фаза 2 — аутентификация и пользователи: JWT RS256 (access 15 мин), непрозрачный refresh с ротацией и отзывом семьи при replay, logout, роли `dispatcher`/`technician`, управление аккаунтами и сброс пароля.
+**Статус:** Фаза 3 — заявки: CRUD, назначение техников с историей (`order_assignments`), конечный автомат статусов (New → InProgress → Done, New/InProgress → Cancelled), append-only журнал событий (`order_events`). Плюс аутентификация фазы 2 (JWT RS256, роли `dispatcher`/`technician`).
 
 ## Быстрый старт
 
@@ -39,9 +39,20 @@ npm run dev
 - `POST /v1/auth/login` — логин по email/паролю, ответ — пара `accessToken` (JWT RS256, TTL `ACCESS_TOKEN_TTL_SEC`, по умолчанию 15 мин) + `refreshToken` (непрозрачный, TTL `REFRESH_TOKEN_TTL_SEC`, по умолчанию 30 дней). 5 неудач подряд — 429 на 15 минут.
 - `POST /v1/auth/refresh` — ротация: старый токен гаснет, повторное использование погашенного отзывает всю семью сессий.
 - `POST /v1/auth/logout` — отзыв семьи refresh-сессий.
-- `POST /v1/users`, `PATCH /v1/users/:id` — управление аккаунтами (только роль `dispatcher`); сброс пароля отзывает все refresh-сессии пользователя; деактивация действует немедленно.
+- `POST /v1/users`, `PATCH /v1/users/:id` — управление аккаунтами (только роль `dispatcher`); сброс пароля отзывает все refresh-сессии пользователя; деактивация действует немедленно; диспетчер не может деактивировать сам себя.
 
 Ключи RS256 задаются через env `JWT_PRIVATE_KEY`/`JWT_PUBLIC_KEY` (base64-кодированный PEM) — генерируются скриптом `scripts/generate-jwt-keys.ts`, в git не попадают.
+
+## Заявки
+
+- `GET /v1/orders` — список: диспетчер видит все (фильтры `status`, `assignedTo`, keyset-пагинация `cursor`/`limit`), техник — только свои (`assignedTo` из query игнорируется).
+- `POST /v1/orders` — создание заявки (только `dispatcher`).
+- `GET /v1/orders/:id` — заявка с фото (пусто до фазы 4) и полной историей событий; чужая заявка технику отвечает 404, не 403.
+- `PATCH /v1/orders/:id` — правка полей (только `dispatcher`); статус меняется только через `transition`; заявка в `Done`/`Cancelled` → 409.
+- `POST /v1/orders/:id/assign` — назначение/переназначение техника (только `dispatcher`); недопустимый статус заявки → 409; несуществующий, деактивированный или не-`technician` исполнитель → 422; повторное назначение того же техника — идемпотентно.
+- `POST /v1/orders/:id/transition` — переход статуса (`dispatcher` — любая заявка, `technician` — только своя); недопустимый переход → 409 `invalid_transition` с текущим статусом в теле; несовпадение `baseStatus` со снимком клиента → 409 `conflict`.
+
+Каждое изменение заявки (создание, назначение, переход статуса) пишется в append-only журнал `order_events` с актором и источником (`api`).
 
 ## Команды
 
