@@ -2,6 +2,7 @@ import multipart from '@fastify/multipart';
 
 import { AppError, ErrorCodeEnum, errorEnvelopeSchema } from '@/shared/errors/index.js';
 
+import { PHOTO_COMMENT_MAX_LENGTH } from './domain.js';
 import {
   orderIdParamsSchema,
   photoFileRedirectResponseSchema,
@@ -106,6 +107,15 @@ export const photosRoutes: FastifyPluginAsyncTypebox<IPhotosRoutesOptions> = asy
       }
 
       const comment = readMultipartFieldValue(file, 'comment');
+
+      // Multipart-поля минуют TypeBox-валидацию тела: длина проверяется вручную, как takenAt.
+      if (comment !== undefined && comment.length > PHOTO_COMMENT_MAX_LENGTH) {
+        request.log.debug(
+          { commentLength: comment.length },
+          'загрузка фото отклонена: comment превышает лимит длины',
+        );
+        throw new AppError(422, ErrorCodeEnum.ValidationFailed, 'Comment is too long');
+      }
 
       const { photo, created } = await uploadStagedPhoto(
         app.db,

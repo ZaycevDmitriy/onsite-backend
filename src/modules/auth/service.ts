@@ -20,6 +20,14 @@ import type { FastifyBaseLogger } from 'fastify';
 // Ограничитель неудачных логинов: 5 подряд → блокировка на 15 минут (FR-01).
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCKOUT_MS = 15 * 60 * 1000;
+// Запись без новых неудач устаревает через окно блокировки: Map не растёт неограниченно
+// при переборе случайных email (memory-DoS).
+const FAILURE_TTL_MS = LOCKOUT_MS;
+// Порог размера Map, при превышении которого перед вставкой выметаются устаревшие записи.
+const FAILED_ATTEMPTS_SWEEP_THRESHOLD = 1000;
+// Минимальный интервал между sweep'ами: полный проход по Map не чаще раза в 30 секунд,
+// иначе поток уникальных email выше порога даёт O(n) на каждую вставку (CPU-DoS).
+const SWEEP_MIN_INTERVAL_MS = 30 * 1000;
 
 // Фиктивный argon2id-хеш случайного пароля: выравнивает тайминг ответа
 // для несуществующего email — verify выполняется всегда (защита от enumeration).
@@ -73,26 +81,64 @@ class ConcurrentRotationError extends Error {
  */
 export const createAuthService = (options: IAuthServiceOptions): IAuthService => {
   const { db, refreshTokenTtlSec, signAccessToken } = options;
-  const failedAttempts = new Map<string, { count: number; lockedUntil: number | null }>();
+  const failedAttempts = new Map<
+    string,
+    { count: number; lockedUntil: number | null; lastFailureAt: number }
+  >();
+
+  /** Запись устарела: блокировка истекла либо с последней неудачи прошло больше FAILURE_TTL_MS. */
+  const isStaleState = (
+    state: { lockedUntil: number | null; lastFailureAt: number },
+    now: number,
+  ): boolean =>
+    state.lockedUntil !== null ? state.lockedUntil <= now : state.lastFailureAt + FAILURE_TTL_MS <= now;
+
+  let lastSweepAt = 0;
+
+  const sweepStaleStates = (now: number): void => {
+    if (now - lastSweepAt < SWEEP_MIN_INTERVAL_MS) {
+      return;
+    }
+    lastSweepAt = now;
+
+    for (const [email, state] of failedAttempts) {
+      if (isStaleState(state, now)) {
+        failedAttempts.delete(email);
+      }
+    }
+  };
 
   const assertNotLocked = (email: string): void => {
     const state = failedAttempts.get(email);
 
-    if (state?.lockedUntil !== null && state?.lockedUntil !== undefined) {
-      if (state.lockedUntil > Date.now()) {
-        throw new AppError(429, ErrorCodeEnum.TooManyAttempts, 'Too many failed login attempts');
-      }
-      // Срок блокировки истёк: счётчик начинается заново.
+    if (state === undefined) {
+      return;
+    }
+
+    if (isStaleState(state, Date.now())) {
+      // Блокировка или окно счётчика истекли: счётчик начинается заново.
       failedAttempts.delete(email);
+      return;
+    }
+
+    if (state.lockedUntil !== null) {
+      throw new AppError(429, ErrorCodeEnum.TooManyAttempts, 'Too many failed login attempts');
     }
   };
 
   const registerFailure = (email: string): void => {
-    const state = failedAttempts.get(email) ?? { count: 0, lockedUntil: null };
+    const now = Date.now();
+
+    if (failedAttempts.size >= FAILED_ATTEMPTS_SWEEP_THRESHOLD && !failedAttempts.has(email)) {
+      sweepStaleStates(now);
+    }
+
+    const state = failedAttempts.get(email) ?? { count: 0, lockedUntil: null, lastFailureAt: now };
     state.count += 1;
+    state.lastFailureAt = now;
 
     if (state.count >= MAX_FAILED_ATTEMPTS) {
-      state.lockedUntil = Date.now() + LOCKOUT_MS;
+      state.lockedUntil = now + LOCKOUT_MS;
     }
 
     failedAttempts.set(email, state);

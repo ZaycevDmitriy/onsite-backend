@@ -5,6 +5,7 @@ import {
   buildStorageKey,
   isAllowedMimeType,
   isStagedExpired,
+  matchesDeclaredMimeType,
 } from '../domain.js';
 
 describe('buildStorageKey', () => {
@@ -64,6 +65,52 @@ describe('isAllowedMimeType', () => {
 
   it('пустая строка → запрещена', () => {
     expect(isAllowedMimeType('')).toBe(false);
+  });
+});
+
+describe('matchesDeclaredMimeType', () => {
+  const jpegBytes = Uint8Array.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10]);
+  const pngBytes = Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00]);
+  const webpBytes = Uint8Array.from([
+    0x52, 0x49, 0x46, 0x46, 0x24, 0x00, 0x00, 0x00, 0x57, 0x45, 0x42, 0x50, 0x56, 0x50, 0x38,
+  ]);
+
+  it('JPEG-байты соответствуют image/jpeg', () => {
+    expect(matchesDeclaredMimeType(jpegBytes, 'image/jpeg')).toBe(true);
+  });
+
+  it('PNG-байты соответствуют image/png', () => {
+    expect(matchesDeclaredMimeType(pngBytes, 'image/png')).toBe(true);
+  });
+
+  it('WebP-байты соответствуют image/webp', () => {
+    expect(matchesDeclaredMimeType(webpBytes, 'image/webp')).toBe(true);
+  });
+
+  it('PNG-байты не соответствуют image/jpeg', () => {
+    expect(matchesDeclaredMimeType(pngBytes, 'image/jpeg')).toBe(false);
+  });
+
+  it('произвольный текст не соответствует ни одному типу', () => {
+    const textBytes = new TextEncoder().encode('просто текст');
+
+    for (const mimeType of ALLOWED_PHOTO_MIME_TYPES) {
+      expect(matchesDeclaredMimeType(textBytes, mimeType)).toBe(false);
+    }
+  });
+
+  it('RIFF без сигнатуры WEBP не соответствует image/webp', () => {
+    const riffOnly = Uint8Array.from([
+      0x52, 0x49, 0x46, 0x46, 0x24, 0x00, 0x00, 0x00, 0x41, 0x56, 0x49, 0x20,
+    ]);
+
+    expect(matchesDeclaredMimeType(riffOnly, 'image/webp')).toBe(false);
+  });
+
+  it('пустой буфер не соответствует ни одному типу', () => {
+    for (const mimeType of ALLOWED_PHOTO_MIME_TYPES) {
+      expect(matchesDeclaredMimeType(new Uint8Array(0), mimeType)).toBe(false);
+    }
   });
 });
 

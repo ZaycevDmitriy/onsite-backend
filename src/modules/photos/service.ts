@@ -7,7 +7,7 @@ import { isUniqueViolation } from '@/shared/db/index.js';
 import { AppError, ErrorCodeEnum } from '@/shared/errors/index.js';
 
 import { PhotoStatusEnum } from './db-schema.js';
-import { buildStorageKey, isAllowedMimeType } from './domain.js';
+import { buildStorageKey, isAllowedMimeType, matchesDeclaredMimeType } from './domain.js';
 import {
   deletePhotoById,
   findPhotoById,
@@ -118,6 +118,14 @@ export const uploadStagedPhoto = async (
 
   if (!isAllowedMimeType(input.mimeType)) {
     logger.debug({ mimeType: input.mimeType }, 'загрузка фото отклонена: недопустимый тип файла');
+    throw new AppError(415, ErrorCodeEnum.UnsupportedMediaType, 'Unsupported file type');
+  }
+
+  if (!matchesDeclaredMimeType(input.fileBuffer, input.mimeType)) {
+    logger.debug(
+      { mimeType: input.mimeType },
+      'загрузка фото отклонена: содержимое не соответствует заявленному типу',
+    );
     throw new AppError(415, ErrorCodeEnum.UnsupportedMediaType, 'Unsupported file type');
   }
 

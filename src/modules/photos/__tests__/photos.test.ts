@@ -15,6 +15,7 @@ import { buildApp } from '@/app.js';
 import { refreshSessions } from '@/modules/auth/db-schema.js';
 import { orderAssignments, orderEvents, orders } from '@/modules/orders/db-schema.js';
 import { photos } from '@/modules/photos/db-schema.js';
+import { PHOTO_COMMENT_MAX_LENGTH } from '@/modules/photos/domain.js';
 import { cleanupOrphanStagedPhotos } from '@/modules/photos/index.js';
 import { users } from '@/modules/users/db-schema.js';
 
@@ -189,6 +190,12 @@ describe.runIf(databaseUrl && s3Endpoint)('модуль фото', () => {
     expect(response.statusCode).toBe(200);
   };
 
+  // Валидный PNG-префикс: содержимое обязано соответствовать заявленному MIME-типу (магические байты).
+  const PNG_MAGIC = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+
+  const makePngBuffer = (payload: string): Buffer =>
+    Buffer.concat([PNG_MAGIC, Buffer.from(payload, 'utf8')]);
+
   const uploadPhoto = async (options: {
     token: string;
     orderId: string;
@@ -211,7 +218,7 @@ describe.runIf(databaseUrl && s3Endpoint)('модуль фото', () => {
         name: 'file',
         filename: 'test.png',
         contentType: options.mimeType ?? 'image/png',
-        data: options.fileBuffer ?? Buffer.from('тестовые-байты-фото', 'utf8'),
+        data: options.fileBuffer ?? makePngBuffer('тестовые-байты-фото'),
       },
       fields,
     );
@@ -397,6 +404,33 @@ describe.runIf(databaseUrl && s3Endpoint)('модуль фото', () => {
       expect(response.json().code).toBe('unsupported_media_type');
     });
 
+    it('содержимое не соответствует заявленному MIME-типу → 415 unsupported_media_type', async () => {
+      const order = await createOrder();
+
+      const response = await uploadPhoto({
+        token: dispatcherToken,
+        orderId: order.id,
+        mimeType: 'image/png',
+        fileBuffer: Buffer.from('не-png-содержимое', 'utf8'),
+      });
+
+      expect(response.statusCode).toBe(415);
+      expect(response.json().code).toBe('unsupported_media_type');
+    });
+
+    it('comment длиннее лимита → 422 validation_failed', async () => {
+      const order = await createOrder();
+
+      const response = await uploadPhoto({
+        token: dispatcherToken,
+        orderId: order.id,
+        comment: 'к'.repeat(PHOTO_COMMENT_MAX_LENGTH + 1),
+      });
+
+      expect(response.statusCode).toBe(422);
+      expect(response.json().code).toBe('validation_failed');
+    });
+
     it('без Idempotency-Key → 422 validation_failed', async () => {
       const order = await createOrder();
 
@@ -446,7 +480,7 @@ describe.runIf(databaseUrl && s3Endpoint)('модуль фото', () => {
   describe('выдача файла (FR-12)', () => {
     it('GET /v1/photos/:id/file → 302 с presigned Location, URL отдаёт загруженные байты', async () => {
       const order = await createOrder();
-      const fileBuffer = Buffer.from('уникальное-содержимое-для-проверки', 'utf8');
+      const fileBuffer = makePngBuffer('уникальное-содержимое-для-проверки');
 
       const uploaded = await uploadPhoto({ token: dispatcherToken, orderId: order.id, fileBuffer });
       expect(uploaded.statusCode).toBe(201);
