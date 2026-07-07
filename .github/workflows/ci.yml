@@ -1,4 +1,4 @@
-# CI: lint, typecheck, build, тесты против postgres:16, валидация OpenAPI.
+# CI: lint, typecheck, build, тесты против postgres:16 + MinIO, валидация OpenAPI.
 name: CI
 
 on:
@@ -30,6 +30,11 @@ jobs:
 
     env:
       DATABASE_URL: postgres://onsite:onsite@localhost:5432/onsite
+      # Бакет создают сами интеграционные тесты фото (CreateBucketCommand) — без зависимости от minio-init.
+      S3_ENDPOINT: http://localhost:9000
+      S3_ACCESS_KEY: minioadmin
+      S3_SECRET_KEY: minioadmin
+      S3_BUCKET: onsite-photos
 
     steps:
       # actions/checkout@v4.2.2
@@ -43,6 +48,28 @@ jobs:
 
       - name: Установка зависимостей
         run: npm ci
+
+      # GitHub service containers не поддерживают override команды, а minio/minio требует
+      # явный `server /data` — поэтому MinIO запускается отдельным шагом через `docker run` (решение #17).
+      - name: Запуск MinIO
+        run: |
+          docker run -d --name minio \
+            -p 9000:9000 \
+            -e MINIO_ROOT_USER=minioadmin \
+            -e MINIO_ROOT_PASSWORD=minioadmin \
+            minio/minio:latest server /data
+
+      - name: Ожидание готовности MinIO
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:9000/minio/health/live > /dev/null; then
+              echo "MinIO готов"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "MinIO не запустился за отведённое время" >&2
+          exit 1
 
       - name: Lint
         run: npm run lint
