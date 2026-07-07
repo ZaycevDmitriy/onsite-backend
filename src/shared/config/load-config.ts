@@ -26,6 +26,16 @@ export interface IAppConfig {
   photoStagedTtlHours: number;
   photoCleanupIntervalMin: number;
   syncSafetyLag: number;
+  // Expo Push (T-16).
+  expoAccessToken: string | undefined;
+  pushWorkerIntervalSec: number;
+  pushReceiptDelayMin: number;
+  pushMaxAttempts: number;
+  // Rate limiting (T-17).
+  rateLimitGlobalMax: number;
+  rateLimitGlobalWindowMs: number;
+  rateLimitAuthMax: number;
+  rateLimitAuthWindowMs: number;
 }
 
 // Ошибка конфигурации: процесс обязан упасть при старте, значения env в сообщение не попадают.
@@ -76,6 +86,14 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): IAppConfig => 
     photoStagedTtlHours: parsed.PHOTO_STAGED_TTL_HOURS,
     photoCleanupIntervalMin: parsed.PHOTO_CLEANUP_INTERVAL_MIN,
     syncSafetyLag: parsed.SYNC_SAFETY_LAG,
+    expoAccessToken: parsed.EXPO_ACCESS_TOKEN,
+    pushWorkerIntervalSec: parsed.PUSH_WORKER_INTERVAL_SEC,
+    pushReceiptDelayMin: parsed.PUSH_RECEIPT_DELAY_MIN,
+    pushMaxAttempts: parsed.PUSH_MAX_ATTEMPTS,
+    rateLimitGlobalMax: parsed.RATE_LIMIT_GLOBAL_MAX,
+    rateLimitGlobalWindowMs: parsed.RATE_LIMIT_GLOBAL_WINDOW_MS,
+    rateLimitAuthMax: parsed.RATE_LIMIT_AUTH_MAX,
+    rateLimitAuthWindowMs: parsed.RATE_LIMIT_AUTH_WINDOW_MS,
   };
 };
 

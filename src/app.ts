@@ -3,6 +3,7 @@ import Fastify from 'fastify';
 
 import { authRoutes, createAuthService } from '@/modules/auth/index.js';
 import { healthRoutes } from '@/modules/health/index.js';
+import { notificationsRoutes } from '@/modules/notifications/index.js';
 import {
   applySyncTransition,
   getCurrentSyncSeq,
@@ -80,6 +81,7 @@ export const buildApp = async (config: IAppConfig): Promise<FastifyInstance> => 
   // Модули (по мере появления фаз добавляются сюда).
   await app.register(healthRoutes);
   await app.register(authRoutes, { authService });
+  await app.register(notificationsRoutes);
   // Отзыв сессий при сбросе пароля users получает инъекцией: цикла users ↔ auth нет.
   await app.register(usersRoutes, {
     revokeAllUserSessions: (userId, logger) => authService.revokeAllUserSessions(userId, logger),
