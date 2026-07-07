@@ -163,13 +163,14 @@ export const runPushSendStage = async (
 
         if (ticket.details?.error === 'DeviceNotRegistered') {
           await deactivateDeviceByToken(tx, ref.device.expoPushToken);
+          // Push-токен в лог не пишется: полусекретный идентификатор устройства.
           logger.info(
-            { outboxId: ref.row.id, token: ref.device.expoPushToken },
+            { outboxId: ref.row.id, deviceId: ref.device.id },
             'push-worker: устройство деактивировано (DeviceNotRegistered, ticket)',
           );
         } else {
           logger.warn(
-            { outboxId: ref.row.id, token: ref.device.expoPushToken, error: ticket.message },
+            { outboxId: ref.row.id, deviceId: ref.device.id, error: ticket.message },
             'push-worker: тикет Expo с ошибкой',
           );
         }
@@ -299,8 +300,9 @@ export const runPushReceiptStage = async (
 
         if (receipt.details?.error === 'DeviceNotRegistered') {
           await deactivateDeviceByToken(tx, ticket.token);
+          // Push-токен в лог не пишется: полусекретный идентификатор устройства.
           logger.info(
-            { outboxId: row.id, token: ticket.token },
+            { outboxId: row.id, ticketId: ticket.ticketId },
             'push-worker: устройство деактивировано (DeviceNotRegistered, receipt)',
           );
         }

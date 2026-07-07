@@ -7,6 +7,12 @@ import { createPool } from '@/shared/db/index.js';
 import { makeEphemeralJwtEnv } from './ephemeral-jwt-env.js';
 import { runSeed } from './seed-data.js';
 
+// Сид создаёт пользователей с фиксированными демо-паролями: против production-БД не запускается.
+if (process.env.NODE_ENV === 'production') {
+  process.stderr.write('Сид запрещён при NODE_ENV=production: демо-учётные данные не для прода.\n');
+  process.exit(1);
+}
+
 // Точка входа сида: npm run seed. JWT-ключи сиду не нужны — эпемерная пара для конфига.
 const config = loadConfig({ ...makeEphemeralJwtEnv(), ...process.env });
 const logger = pino({ level: config.logLevel });
