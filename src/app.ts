@@ -3,6 +3,7 @@ import Fastify from 'fastify';
 
 import { authRoutes, createAuthService } from '@/modules/auth/index.js';
 import { healthRoutes } from '@/modules/health/index.js';
+import { ordersRoutes } from '@/modules/orders/index.js';
 import { getActiveUser, usersRoutes } from '@/modules/users/index.js';
 import { dbPlugin } from '@/shared/db/index.js';
 import { errorHandler, notFoundHandler } from '@/shared/errors/index.js';
@@ -54,6 +55,7 @@ export const buildApp = async (config: IAppConfig): Promise<FastifyInstance> => 
   await app.register(usersRoutes, {
     revokeAllUserSessions: (userId, logger) => authService.revokeAllUserSessions(userId, logger),
   });
+  await app.register(ordersRoutes);
 
   return app;
 };
