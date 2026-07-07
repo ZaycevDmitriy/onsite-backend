@@ -1,3 +1,17 @@
+# [1.4.0](https://github.com/ZaycevDmitriy/onsite-backend/compare/v1.3.0...v1.4.0) (2026-07-07)
+
+
+### Bug Fixes
+
+* скоупинг идемпотентности sync-мутаций по userId и минимальная длина пароля 12 ([8bcbbfb](https://github.com/ZaycevDmitriy/onsite-backend/commit/8bcbbfb29422931a374cd22397a3b9f2a6953f87))
+
+
+### Features
+
+* pull-синхронизация заявок по курсору с tombstone и safety-lag ([29d03bc](https://github.com/ZaycevDmitriy/onsite-backend/commit/29d03bc74a92d4d1a036a778943730707fac7653))
+* приём батча офлайн-мутаций с идемпотентностью и вердиктами ([7a30caa](https://github.com/ZaycevDmitriy/onsite-backend/commit/7a30caa52f616ff510d2e335ed515760542f53aa))
+* расширение публичных API orders и photos под синк-протокол ([3bc228c](https://github.com/ZaycevDmitriy/onsite-backend/commit/3bc228cbcff87ccd5259358db8c1e7b4555771b6))
+
 # [1.3.0](https://github.com/ZaycevDmitriy/onsite-backend/compare/v1.2.0...v1.3.0) (2026-07-07)
 
 
