@@ -78,19 +78,22 @@ export const syncPullResponseSchema = Type.Object({
 
 // Мутации: id/orderId/photoId — без format:'uuid' — кросс-полевые проверки (в т.ч. формат uuid)
 // делает сервис с вердиктом rejected, а не AJV с 422 на весь батч (решение #8 фазы 5).
+// maxLength: 128 — с запасом на UUID (36 символов), но не unbounded в батче до 500 штук (OWASP API4).
+const idFieldSchema = Type.String({ minLength: 1, maxLength: 128 });
+
 const statusChangeMutationSchema = Type.Object({
-  mutationId: Type.String({ minLength: 1 }),
+  mutationId: idFieldSchema,
   type: Type.Literal('status_change'),
-  orderId: Type.String({ minLength: 1 }),
+  orderId: idFieldSchema,
   to: orderStatusSchema,
   baseStatus: orderStatusSchema,
 });
 
 const photoAddMutationSchema = Type.Object({
-  mutationId: Type.String({ minLength: 1 }),
+  mutationId: idFieldSchema,
   type: Type.Literal('photo_add'),
-  orderId: Type.String({ minLength: 1 }),
-  photoId: Type.String({ minLength: 1 }),
+  orderId: idFieldSchema,
+  photoId: idFieldSchema,
 });
 
 const syncMutationSchema = Type.Union([statusChangeMutationSchema, photoAddMutationSchema]);

@@ -1,0 +1,21 @@
+# Правило алёрта NFR-11: доля 5xx-ответов > 1% за 5 минут.
+# Алёртинг-стек с нотификациями (Alertmanager → канал) вне scope фазы 6 — только правило
+# и инструкция: подключить файл в prometheus.yml через `rule_files`, Alertmanager настраивается
+# отдельно (см. docs/deployment.md).
+groups:
+  - name: onsite-backend
+    rules:
+      - alert: HighErrorRate5xx
+        expr: |
+          (
+            sum(rate(http_request_duration_seconds_count{status_code=~"5.."}[5m]))
+            /
+            sum(rate(http_request_duration_seconds_count[5m]))
+          ) > 0.01
+        labels:
+          severity: critical
+        annotations:
+          summary: Доля 5xx-ответов превышает 1% за 5 минут
+          description: >-
+            {{ $value | humanizePercentage }} запросов завершились 5xx за последние 5 минут
+            (порог NFR-11 — 1%).

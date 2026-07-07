@@ -1,0 +1,19 @@
+{
+	email {$ACME_EMAIL}
+}
+
+# API: единственная публичная точка входа к приложению — авто-TLS через Let's Encrypt.
+# /metrics намеренно без auth (решение #5 фазы 6) — защита через непубликацию наружу, поэтому
+# блокируется здесь; Prometheus ходит на api:3000 напрямую по внутренней docker-сети, минуя Caddy.
+{$DOMAIN_API} {
+	@metrics path /metrics
+	respond @metrics 404
+
+	reverse_proxy api:3000
+	encode gzip
+}
+
+# MinIO: отдельный домен для presigned URL, выдаваемых клиенту напрямую (без прокси через API).
+{$DOMAIN_STORAGE} {
+	reverse_proxy minio:9000
+}

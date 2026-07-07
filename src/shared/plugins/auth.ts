@@ -8,6 +8,11 @@ import type { FastifyReply, FastifyRequest } from 'fastify';
 // Роли дублируются строковыми литералами: shared не импортирует modules.
 export type AuthRole = 'dispatcher' | 'technician';
 
+// Издатель и аудитория access-токена: токены, подписанные этими же ключами
+// для другого сервиса, верификацию не пройдут.
+const JWT_ISSUER = 'onsite-backend';
+const JWT_AUDIENCE = 'onsite-app';
+
 // Payload access-токена: subject — id пользователя, роль — для requireRole.
 export interface IAccessTokenPayload {
   sub: string;
@@ -57,7 +62,19 @@ export const authPlugin = fp<IAuthPluginOptions>(
   async (app, options) => {
     await app.register(fastifyJwt, {
       secret: { private: options.privateKey, public: options.publicKey },
-      sign: { algorithm: 'RS256', expiresIn: options.accessTokenTtlSec },
+      sign: {
+        algorithm: 'RS256',
+        expiresIn: options.accessTokenTtlSec,
+        iss: JWT_ISSUER,
+        aud: JWT_AUDIENCE,
+      },
+      // requiredClaims обязателен: allowedIss/allowedAud в fast-jwt проверяют клейм,
+      // только если он присутствует — токен без iss/aud иначе прошёл бы верификацию.
+      verify: {
+        allowedIss: JWT_ISSUER,
+        allowedAud: JWT_AUDIENCE,
+        requiredClaims: ['iss', 'aud'],
+      },
     });
 
     app.decorate('authenticate', async (request: FastifyRequest) => {

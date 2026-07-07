@@ -20,18 +20,20 @@ import {
   updateOrder,
 } from './service.js';
 
-import type { IListCommittedPhotos } from './service.js';
+import type { IEnqueueAssignmentPush, IListCommittedPhotos } from './service.js';
 import type { FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
 
 export interface IOrdersRoutesOptions {
   // Committed-фото заявки: инъецируется из @/modules/photos композиционным корнем (решение #10).
   listCommittedPhotos: IListCommittedPhotos;
+  // Push о назначении: инъецируется из @/modules/notifications композиционным корнем (решение #3 фазы 6).
+  enqueueAssignmentPush: IEnqueueAssignmentPush;
 }
 
 // Заявки: список/детали доступны обеим ролям, остальное — только dispatcher (FR-03).
 export const ordersRoutes: FastifyPluginAsyncTypebox<IOrdersRoutesOptions> =
   // eslint-disable-next-line @typescript-eslint/require-await -- Сигнатура async-плагина Fastify.
-  async (app, { listCommittedPhotos }) => {
+  async (app, { listCommittedPhotos, enqueueAssignmentPush }) => {
   const dispatcherOnly = [app.authenticate, app.requireRole('dispatcher')];
 
   app.get(
@@ -136,7 +138,14 @@ export const ordersRoutes: FastifyPluginAsyncTypebox<IOrdersRoutesOptions> =
       },
     },
     async (request) =>
-      assignOrder(app.db, request.params.id, request.body, request.user, request.log),
+      assignOrder(
+        app.db,
+        request.params.id,
+        request.body,
+        request.user,
+        enqueueAssignmentPush,
+        request.log,
+      ),
   );
 
   app.post(

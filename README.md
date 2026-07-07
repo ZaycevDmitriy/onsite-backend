@@ -2,9 +2,9 @@
 
 REST API для [Onsite](https://github.com/ZaycevDmitriy/field-service-crm) — мобильного mini-CRM выездных сервисных работников. Превращает офлайн-приложение в мультипользовательскую CRM: аутентификация с ролями, серверный реестр заявок с назначением на техников, протокол офлайн-синхронизации с идемпотентными мутациями, фотоотчёты и push-уведомления.
 
-**Стек:** Node.js 24 · Fastify 5 (TypeBox) · PostgreSQL 16 (Drizzle) · MinIO/S3 · Docker Compose.
+**Стек:** Node.js 24 · Fastify 5 (TypeBox) · PostgreSQL 16 (Drizzle) · MinIO/S3 · Expo Push · Docker Compose (self-host: + Caddy, Prometheus).
 
-**Статус:** Фаза 5 (MVP) — синк-протокол: pull изменений по курсору с tombstone и safety-lag, батч офлайн-мутаций с идемпотентностью и server-authoritative вердиктами. Плюс фотоотчёты фазы 4 (staged-загрузка, presigned URL, зачистка сирот), заявки фазы 3 (CRUD, назначение, конечный автомат статусов, `order_events`) и аутентификация фазы 2 (JWT RS256, роли `dispatcher`/`technician`).
+**Статус:** v1.0 — синк-протокол (pull по курсору с tombstone/safety-lag, батч офлайн-мутаций с идемпотентностью), фотоотчёты (staged-загрузка, presigned URL, зачистка сирот), заявки (CRUD, назначение, конечный автомат статусов, `order_events`), аутентификация (JWT RS256, роли `dispatcher`/`technician`), push-уведомления о назначении (Expo, outbox-паттерн), rate limiting, Prometheus-метрики, self-host деплой. OWASP API Top-10 аудит пройден перед релизом.
 
 ## Быстрый старт
 
@@ -85,6 +85,23 @@ S3_SECRET_KEY=minioadmin \
   - `status_change` — переход статуса заявки; несовпадение `baseStatus` или недопустимый переход → `conflict` со снимком заявки и событием `sync_conflict`; заявка не назначена на техника (переназначена/снята) → `conflict`; заявка не найдена → `rejected`.
   - `photo_add` — коммит ранее загруженного staged-фото (`photoId`); неизвестный/чужой/уже закоммиченный `photoId`, либо `orderId` мутации не совпадает с заявкой фото → `rejected`; заявка в статусе `Cancelled`/`Done` — фотоотчёт всё равно `applied` (ценен постфактум).
   - Каждая применённая мутация пишет событие в `order_events` с `source: 'sync'` и двигает курсор заявки.
+
+## Устройства и push-уведомления
+
+- `PUT /v1/devices` — регистрация Expo push-токена устройства (`{ expoPushToken }` → 204); повторная регистрация того же токена — upsert, в т.ч. от другого пользователя (легитимная перепривязка при re-login на новом аккаунте).
+- Назначение заявки (`POST /v1/orders/:id/assign`) атомарно кладёт push-уведомление в outbox-очередь `push_outbox` — сбой отправки в Expo не ломает сам запрос назначения.
+- Push-worker (в процессе api, интервал `PUSH_WORKER_INTERVAL_SEC`) двумя стадиями: отправка (чанки в Expo, fan-out на все активные устройства техника) и проверка receipt'ов (`PUSH_RECEIPT_DELAY_MIN`) — `DeviceNotRegistered` на любой стадии автоматически деактивирует токен.
+
+## Rate limiting и метрики
+
+- Глобальный лимит запросов на IP + отдельный жёсткий лимит на `/v1/auth/*` (`@fastify/rate-limit`); превышение — 429 тем же конвертом ошибок `{ code: 'too_many_attempts', message }`. `/v1/health` и `/metrics` из лимита исключены.
+- `GET /metrics` — Prometheus-метрики (латентности по route-шаблону, коды ответов, глубина `push_outbox`); без аутентификации — доступ ограничивается непубликацией порта наружу в production-компоузе, не приложением.
+
+## Продакшн-деплой (self-host)
+
+`compose.production.yml` — полный self-host стек: Caddy (reverse-proxy с авто-TLS через Let's Encrypt) → api, PostgreSQL, MinIO, Prometheus (алёрт-правило на долю 5xx-ответов), ежедневные бэкапы `pg_dump` + бакета фото. Демо-сид (`npm run seed`) в проде не запускается. Подробности — в `deploy/` (Caddyfile, конфиг Prometheus, скрипты бэкапов) и `.env.production.example`.
+
+> Примечание к обновлению до этой версии: верификация JWT теперь требует клеймы `iss`/`aud` — access-токены, выпущенные предыдущими версиями, разово получат 401; клиент штатно обновит их через refresh.
 
 ## Команды
 

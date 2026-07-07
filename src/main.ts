@@ -1,4 +1,7 @@
+import { Expo } from 'expo-server-sdk';
+
 import { buildApp } from '@/app.js';
+import { runPushReceiptStage, runPushSendStage } from '@/modules/notifications/index.js';
 import { cleanupOrphanStagedPhotos } from '@/modules/photos/index.js';
 import { loadConfig } from '@/shared/config/index.js';
 
@@ -33,6 +36,39 @@ app.addHook('onClose', () => {
 });
 
 void runPhotoCleanup();
+
+// Push-worker (T-16, решение #2 фазы 6): один цикл send → receipts на setInterval.
+const expoClient = new Expo(
+  config.expoAccessToken !== undefined ? { accessToken: config.expoAccessToken } : {},
+);
+const pushSendOptions = { batchLimit: 50, maxAttempts: config.pushMaxAttempts };
+const pushReceiptOptions = { batchLimit: 50, receiptDelayMin: config.pushReceiptDelayMin };
+
+// Один цикл: сперва отправка pending, затем проверка receipt'ов уже отправленных (решение #2 фазы 6).
+const runPushWorkerCycle = async (): Promise<void> => {
+  try {
+    await runPushSendStage(app.db, expoClient, pushSendOptions, app.log);
+  } catch (error) {
+    app.log.error({ err: error }, 'ошибка стадии отправки push-worker');
+  }
+
+  try {
+    await runPushReceiptStage(app.db, expoClient, pushReceiptOptions, app.log);
+  } catch (error) {
+    app.log.error({ err: error }, 'ошибка стадии receipt push-worker');
+  }
+};
+
+const pushWorkerTimer = setInterval(
+  () => void runPushWorkerCycle(),
+  config.pushWorkerIntervalSec * 1000,
+);
+
+app.addHook('onClose', () => {
+  clearInterval(pushWorkerTimer);
+});
+
+void runPushWorkerCycle();
 
 try {
   await app.listen({ host: config.host, port: config.port });

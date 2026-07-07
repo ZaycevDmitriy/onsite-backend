@@ -68,6 +68,20 @@ export const envSchema = Type.Object({
   PHOTO_CLEANUP_INTERVAL_MIN: Type.Number({ minimum: 1, default: 60 }),
   // Safety-lag курсора pull-синхронизации в единицах sync_seq (FR-08, NFR-08, решение #1 фазы 5).
   SYNC_SAFETY_LAG: Type.Number({ minimum: 0, default: 100 }),
+  // Access-токен Expo Push Service (enhanced security) — опционален, без него запросы идут анонимно.
+  EXPO_ACCESS_TOKEN: Type.Optional(Type.String({ minLength: 1 })),
+  // Интервал прогона push-worker'а (send + receipts) в секундах (T-16, решение #2 фазы 6).
+  PUSH_WORKER_INTERVAL_SEC: Type.Number({ minimum: 1, default: 10 }),
+  // Минимальный возраст тикета перед проверкой receipt'а в минутах (рекомендация Expo — ~15 мин).
+  PUSH_RECEIPT_DELAY_MIN: Type.Number({ minimum: 1, default: 15 }),
+  // Максимум попыток отправки записи outbox перед окончательным failed.
+  PUSH_MAX_ATTEMPTS: Type.Number({ minimum: 1, default: 5 }),
+  // Rate limiting (FR-18, T-17): глобальный лимит на IP.
+  RATE_LIMIT_GLOBAL_MAX: Type.Number({ minimum: 1, default: 200 }),
+  RATE_LIMIT_GLOBAL_WINDOW_MS: Type.Number({ minimum: 1, default: 60_000 }),
+  // Жёсткий лимит на /v1/auth/* (защита от перебора логина/пароля).
+  RATE_LIMIT_AUTH_MAX: Type.Number({ minimum: 1, default: 10 }),
+  RATE_LIMIT_AUTH_WINDOW_MS: Type.Number({ minimum: 1, default: 60_000 }),
 });
 
 export type IEnv = Static<typeof envSchema>;

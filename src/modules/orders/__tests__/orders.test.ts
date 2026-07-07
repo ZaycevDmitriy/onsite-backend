@@ -1,13 +1,14 @@
 import { randomUUID } from 'node:crypto';
 
 import { hash } from '@node-rs/argon2';
-import { inArray } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { makeTestConfig } from '@/__tests__/helpers/test-config.js';
 import { buildApp } from '@/app.js';
 import { orderAssignments, orderEvents, orders } from '@/modules/orders/db-schema.js';
 import { refreshSessions } from '@/modules/auth/db-schema.js';
+import { pushOutbox } from '@/modules/notifications/db-schema.js';
 import { users } from '@/modules/users/db-schema.js';
 
 import type { UserRoleEnum } from '@/modules/users/index.js';
@@ -117,6 +118,7 @@ describe.runIf(databaseUrl)('модуль заявок', () => {
     }
     if (createdUserIds.length > 0) {
       await app.db.delete(refreshSessions).where(inArray(refreshSessions.userId, createdUserIds));
+      await app.db.delete(pushOutbox).where(inArray(pushOutbox.userId, createdUserIds));
       await app.db.delete(users).where(inArray(users.id, createdUserIds));
     }
     await app.close();
@@ -255,6 +257,15 @@ describe.runIf(databaseUrl)('модуль заявок', () => {
       expect(activeRows).toHaveLength(1);
       expect(activeRows[0]?.userId).toBe(technician.id);
       expect(activeRows[0]?.unassignedAt).toBeNull();
+
+      // Push о назначении поставлен в outbox атомарно с самим назначением (FR-14, решение #3 фазы 6).
+      const outboxRows = await app.db
+        .select()
+        .from(pushOutbox)
+        .where(eq(pushOutbox.userId, technician.id));
+      expect(outboxRows).toHaveLength(1);
+      expect(outboxRows[0]?.status).toBe('pending');
+      expect(outboxRows[0]?.message).toMatchObject({ data: { orderId: order.id } });
     });
 
     it('повторное назначение того же техника — идемпотентно, без дублей истории', async () => {
@@ -285,6 +296,13 @@ describe.runIf(databaseUrl)('модуль заявок', () => {
         .from(orderAssignments)
         .where(inArray(orderAssignments.orderId, [order.id]));
       expect(rows).toHaveLength(1);
+
+      // Идемпотентный no-op не ставит повторный push в очередь.
+      const outboxRows = await app.db
+        .select()
+        .from(pushOutbox)
+        .where(eq(pushOutbox.userId, technician.id));
+      expect(outboxRows).toHaveLength(1);
     });
 
     it('переназначение другому технику закрывает прежнюю запись tombstone (unassigned_seq)', async () => {

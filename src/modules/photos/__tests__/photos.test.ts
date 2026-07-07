@@ -13,6 +13,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { makeTestConfig } from '@/__tests__/helpers/test-config.js';
 import { buildApp } from '@/app.js';
 import { refreshSessions } from '@/modules/auth/db-schema.js';
+import { pushOutbox } from '@/modules/notifications/db-schema.js';
 import { orderAssignments, orderEvents, orders } from '@/modules/orders/db-schema.js';
 import { photos } from '@/modules/photos/db-schema.js';
 import { PHOTO_COMMENT_MAX_LENGTH } from '@/modules/photos/domain.js';
@@ -286,6 +287,7 @@ describe.runIf(databaseUrl && s3Endpoint)('модуль фото', () => {
     }
     if (createdUserIds.length > 0) {
       await app.db.delete(refreshSessions).where(inArray(refreshSessions.userId, createdUserIds));
+      await app.db.delete(pushOutbox).where(inArray(pushOutbox.userId, createdUserIds));
       await app.db.delete(users).where(inArray(users.id, createdUserIds));
     }
     await app.close();

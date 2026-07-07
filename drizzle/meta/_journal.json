@@ -15,6 +15,13 @@
       "when": 1783411875058,
       "tag": "0001_magenta_landau",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1783440964463,
+      "tag": "0002_organic_spot",
+      "breakpoints": true
     }
   ]
 }

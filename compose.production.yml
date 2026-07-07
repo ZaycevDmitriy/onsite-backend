@@ -1,0 +1,180 @@
+# Self-host продакшн-стек Onsite (T-19, фаза 6): caddy (TLS) → api, postgres, minio (фото),
+# prometheus (метрики), backup-postgres/backup-minio (NFR-03). Секреты — только из .env
+# (см. .env.production.example), дефолтов вида `onsite`/`minioadmin` здесь нет намеренно.
+# Запуск: docker compose -f compose.production.yml --env-file .env.production up -d
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '443:443'
+    environment:
+      DOMAIN_API: ${DOMAIN_API}
+      DOMAIN_STORAGE: ${DOMAIN_STORAGE}
+      ACME_EMAIL: ${ACME_EMAIL}
+    volumes:
+      - ./deploy/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - api
+      - minio
+
+  api:
+    build:
+      context: .
+      target: runtime
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: 3000
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      JWT_PRIVATE_KEY: ${JWT_PRIVATE_KEY}
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY}
+      ACCESS_TOKEN_TTL_SEC: ${ACCESS_TOKEN_TTL_SEC:-900}
+      REFRESH_TOKEN_TTL_SEC: ${REFRESH_TOKEN_TTL_SEC:-2592000}
+      S3_ENDPOINT: http://minio:9000
+      # Presigned URL подписываются доменом MinIO за Caddy — клиент ходит за файлом напрямую, не через api.
+      S3_PUBLIC_ENDPOINT: https://${DOMAIN_STORAGE}
+      S3_ACCESS_KEY: ${MINIO_ROOT_USER}
+      S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
+      S3_BUCKET: ${S3_BUCKET:-onsite-photos}
+      EXPO_ACCESS_TOKEN: ${EXPO_ACCESS_TOKEN:-}
+      PUSH_WORKER_INTERVAL_SEC: ${PUSH_WORKER_INTERVAL_SEC:-10}
+      PUSH_RECEIPT_DELAY_MIN: ${PUSH_RECEIPT_DELAY_MIN:-15}
+      PUSH_MAX_ATTEMPTS: ${PUSH_MAX_ATTEMPTS:-5}
+      RATE_LIMIT_GLOBAL_MAX: ${RATE_LIMIT_GLOBAL_MAX:-200}
+      RATE_LIMIT_GLOBAL_WINDOW_MS: ${RATE_LIMIT_GLOBAL_WINDOW_MS:-60000}
+      RATE_LIMIT_AUTH_MAX: ${RATE_LIMIT_AUTH_MAX:-10}
+      RATE_LIMIT_AUTH_WINDOW_MS: ${RATE_LIMIT_AUTH_WINDOW_MS:-60000}
+    # Порт наружу НЕ публикуется: единственная публичная точка входа — Caddy (OWASP-аудит T-19).
+    expose:
+      - '3000'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+      minio:
+        condition: service_healthy
+
+  # One-shot: только миграции. Seed НЕ запускается в проде намеренно — демо-аккаунты
+  # (dispatcher123/technician123) не должны существовать за пределами dev-стенда (находка OWASP-аудита T-19).
+  migrate:
+    build:
+      context: .
+      target: build
+    command: npx tsx scripts/migrate.ts
+    environment:
+      NODE_ENV: production
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+    expose:
+      - '5432'
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}']
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  minio:
+    image: minio/minio:latest
+    restart: unless-stopped
+    command: server /data --console-address ':9001'
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    volumes:
+      - minio-data:/data
+    expose:
+      - '9000'
+    healthcheck:
+      test: ['CMD', 'mc', 'ready', 'local']
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  # One-shot: создаёт бакет фотоотчётов.
+  minio-init:
+    image: minio/mc:latest
+    entrypoint: >
+      sh -c "mc alias set local http://minio:9000 $$MINIO_ROOT_USER $$MINIO_ROOT_PASSWORD &&
+             mc mb --ignore-existing local/$${S3_BUCKET:-onsite-photos}"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      S3_BUCKET: ${S3_BUCKET:-onsite-photos}
+    depends_on:
+      minio:
+        condition: service_healthy
+
+  # Prometheus не публикуется наружу (решение #5 фазы 6): доступ — SSH-туннель на сервер
+  # (см. docs/deployment.md), не публичный порт.
+  prometheus:
+    image: prom/prometheus:latest
+    restart: unless-stopped
+    volumes:
+      - ./deploy/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./deploy/prometheus/alert-rules.yml:/etc/prometheus/alert-rules.yml:ro
+      - prometheus-data:/prometheus
+    expose:
+      - '9090'
+    depends_on:
+      - api
+
+  backup-postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    entrypoint: sh /backup/backup-postgres.sh
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-14}
+    volumes:
+      - ./deploy/backup/backup-postgres.sh:/backup/backup-postgres.sh:ro
+      - backups:/backups
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  backup-minio:
+    image: minio/mc:latest
+    restart: unless-stopped
+    entrypoint: sh /backup/backup-minio.sh
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      S3_BUCKET: ${S3_BUCKET:-onsite-photos}
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-14}
+    volumes:
+      - ./deploy/backup/backup-minio.sh:/backup/backup-minio.sh:ro
+      - backups:/backups
+    depends_on:
+      minio:
+        condition: service_healthy
+
+volumes:
+  pg-data:
+  minio-data:
+  caddy-data:
+  caddy-config:
+  prometheus-data:
+  backups:

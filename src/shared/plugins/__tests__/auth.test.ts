@@ -1,5 +1,6 @@
 import { generateKeyPairSync } from 'node:crypto';
 
+import fastifyJwt from '@fastify/jwt';
 import Fastify from 'fastify';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
@@ -104,6 +105,28 @@ describe('authPlugin', () => {
 
     expect(response.statusCode).toBe(401);
     expect(getActiveUser).toHaveBeenCalledWith(ghost.id);
+  });
+
+  it('токен без iss/aud, подписанный теми же ключами, → 401', async () => {
+    // «Чужой» подписант: те же RS256-ключи, но без клеймов издателя и аудитории.
+    const foreign = Fastify({ logger: false });
+    await foreign.register(fastifyJwt, {
+      secret: { private: privateKey, public: publicKey },
+      sign: { algorithm: 'RS256', expiresIn: 900 },
+    });
+    await foreign.ready();
+
+    const token = foreign.jwt.sign({ sub: dispatcher.id, role: dispatcher.role });
+    await foreign.close();
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/protected',
+      headers: { authorization: `Bearer ${token}` },
+    });
+
+    expect(response.statusCode).toBe(401);
+    expect(response.json<{ code: string }>().code).toBe('unauthorized');
   });
 
   it('просроченный токен → 401', async () => {

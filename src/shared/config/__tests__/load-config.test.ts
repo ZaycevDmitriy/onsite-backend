@@ -49,6 +49,14 @@ describe('loadConfig', () => {
       photoStagedTtlHours: 168,
       photoCleanupIntervalMin: 60,
       syncSafetyLag: 100,
+      expoAccessToken: undefined,
+      pushWorkerIntervalSec: 10,
+      pushReceiptDelayMin: 15,
+      pushMaxAttempts: 5,
+      rateLimitGlobalMax: 200,
+      rateLimitGlobalWindowMs: 60_000,
+      rateLimitAuthMax: 10,
+      rateLimitAuthWindowMs: 60_000,
     });
   });
 

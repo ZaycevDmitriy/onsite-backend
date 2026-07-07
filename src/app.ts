@@ -4,6 +4,11 @@ import Fastify from 'fastify';
 import { authRoutes, createAuthService } from '@/modules/auth/index.js';
 import { healthRoutes } from '@/modules/health/index.js';
 import {
+  countOutboxByStatus,
+  enqueueAssignmentPush,
+  notificationsRoutes,
+} from '@/modules/notifications/index.js';
+import {
   applySyncTransition,
   getCurrentSyncSeq,
   listOrdersForSync,
@@ -26,7 +31,9 @@ import {
   authPlugin,
   buildLoggerOptions,
   genReqId,
+  metricsPlugin,
   openapiPlugin,
+  rateLimitPlugin,
   s3Plugin,
 } from '@/shared/plugins/index.js';
 
@@ -42,6 +49,9 @@ export const buildApp = async (config: IAppConfig): Promise<FastifyInstance> => 
   const options: FastifyServerOptions = {
     logger: buildLoggerOptions(config),
     genReqId,
+    // За reverse-proxy (Caddy, решение #6 фазы 6) req.ip иначе всегда = IP прокси: rate limiting
+    // по IP (T-17) схлопнется в одну корзину на всех клиентов (OWASP API8, находка аудита T-19).
+    trustProxy: true,
   };
   const app = Fastify(options).withTypeProvider<TypeBoxTypeProvider>();
 
@@ -49,6 +59,11 @@ export const buildApp = async (config: IAppConfig): Promise<FastifyInstance> => 
 
   // contentSecurityPolicy отключён только для Swagger UI на /docs.
   await app.register(helmet, { contentSecurityPolicy: false });
+  // Глобальный rate limiting на IP (FR-18, T-17): раньше остальных роутов — применяется ко всем.
+  await app.register(rateLimitPlugin, {
+    max: config.rateLimitGlobalMax,
+    timeWindowMs: config.rateLimitGlobalWindowMs,
+  });
   await app.register(dbPlugin, { databaseUrl: config.databaseUrl });
   await app.register(s3Plugin, {
     endpoint: config.s3Endpoint,
@@ -59,6 +74,10 @@ export const buildApp = async (config: IAppConfig): Promise<FastifyInstance> => 
     bucket: config.s3Bucket,
   });
   await app.register(openapiPlugin);
+  // countOutboxByStatus инъецируется из notifications: shared не импортирует modules (решение #4 фазы 6).
+  await app.register(metricsPlugin, {
+    countOutboxByStatus: () => countOutboxByStatus(app.db),
+  });
 
   // getActiveUser инъецируется из публичного API users: shared не импортирует modules.
   await app.register(authPlugin, {
@@ -79,14 +98,21 @@ export const buildApp = async (config: IAppConfig): Promise<FastifyInstance> => 
 
   // Модули (по мере появления фаз добавляются сюда).
   await app.register(healthRoutes);
-  await app.register(authRoutes, { authService });
+  await app.register(authRoutes, {
+    authService,
+    rateLimit: { max: config.rateLimitAuthMax, timeWindowMs: config.rateLimitAuthWindowMs },
+  });
+  await app.register(notificationsRoutes);
   // Отзыв сессий при сбросе пароля users получает инъекцией: цикла users ↔ auth нет.
   await app.register(usersRoutes, {
     revokeAllUserSessions: (userId, logger) => authService.revokeAllUserSessions(userId, logger),
   });
   // Committed-фото в GET /v1/orders/:id инъецируются из photos: цикла orders ↔ photos нет,
   // так как orders не импортирует photos напрямую (решение #10).
-  await app.register(ordersRoutes, { listCommittedPhotos: listCommittedPhotosByOrderId });
+  await app.register(ordersRoutes, {
+    listCommittedPhotos: listCommittedPhotosByOrderId,
+    enqueueAssignmentPush,
+  });
   await app.register(photosRoutes, {
     maxFileSizeBytes: config.photoMaxSizeMb * 1024 * 1024,
     presignTtlSec: config.photoPresignTtlSec,
