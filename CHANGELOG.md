@@ -1,3 +1,18 @@
+# [1.5.0](https://github.com/ZaycevDmitriy/onsite-backend/compare/v1.4.0...v1.5.0) (2026-07-07)
+
+
+### Bug Fixes
+
+* hardening по итогам security-аудита ([9d4b5c1](https://github.com/ZaycevDmitriy/onsite-backend/commit/9d4b5c1b2140e86532d5762a74203fe0706d2c12))
+* requiredClaims для iss/aud, негативный тест и allowlist хостов БД в сиде ([9a5163e](https://github.com/ZaycevDmitriy/onsite-backend/commit/9a5163e5ff43027e3c082dbad8400bb6940f6c90))
+
+
+### Features
+
+* push-worker — outbox, отправка в Expo, receipt'ы и деактивация мёртвых токенов ([70b2b98](https://github.com/ZaycevDmitriy/onsite-backend/commit/70b2b98bf60f9c18b4726e688a5644b2a84347ef))
+* rate limiting и Prometheus-метрики с алёрт-правилом 5xx ([0d5b52c](https://github.com/ZaycevDmitriy/onsite-backend/commit/0d5b52cfcff4d786e13a884132f47e29541b6877))
+* регистрация устройств для push-уведомлений ([a7c04ae](https://github.com/ZaycevDmitriy/onsite-backend/commit/a7c04ae8ec53309c5893ad53ccd42ac74c342c67))
+
 # [1.4.0](https://github.com/ZaycevDmitriy/onsite-backend/compare/v1.3.0...v1.4.0) (2026-07-07)
 
 
