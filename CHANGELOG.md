@@ -1,3 +1,10 @@
+## [1.6.1](https://github.com/ZaycevDmitriy/onsite-backend/compare/v1.6.0...v1.6.1) (2026-07-08)
+
+
+### Bug Fixes
+
+* замечания ревью PR [#5](https://github.com/ZaycevDmitriy/onsite-backend/issues/5) — индекс expires_at и лимит интервалов ([80ebe56](https://github.com/ZaycevDmitriy/onsite-backend/commit/80ebe5694d84797331bfd5f115a855b7bcab7d73))
+
 # [1.6.0](https://github.com/ZaycevDmitriy/onsite-backend/compare/v1.5.1...v1.6.0) (2026-07-08)
 
 
