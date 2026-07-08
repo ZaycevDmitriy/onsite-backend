@@ -99,25 +99,26 @@ S3_SECRET_KEY=minioadmin \
 
 ## Продакшн-деплой (self-host)
 
-`compose.production.yml` — полный self-host стек: Caddy (reverse-proxy с авто-TLS через Let's Encrypt) → api, PostgreSQL, MinIO, Prometheus (алёрт-правило на долю 5xx-ответов), ежедневные бэкапы `pg_dump` + бакета фото. Демо-сид (`npm run seed`) в проде не запускается. Подробности — в `deploy/` (Caddyfile, конфиг Prometheus, скрипты бэкапов) и `.env.production.example`.
+`compose.production.yml` — полный self-host стек: Caddy (reverse-proxy с авто-TLS через Let's Encrypt) → api, PostgreSQL, MinIO, Prometheus (алёрт-правило на долю 5xx-ответов), ежедневные бэкапы `pg_dump` + бакета фото. `api`/`migrate` используют готовый образ из GHCR — сборка на VPS не нужна. Демо-сид (`npm run seed`) в проде не запускается; первый диспетчер заводится через `create-first-user`. Подробности — в `docs/deployment.md`, `deploy/` (Caddyfile, конфиг Prometheus, скрипты бэкапов) и `.env.production.example`.
 
 > Примечание к обновлению до этой версии: верификация JWT теперь требует клеймы `iss`/`aud` — access-токены, выпущенные предыдущими версиями, разово получат 401; клиент штатно обновит их через refresh.
 
 ## Команды
 
-| Команда                    | Назначение                                            |
-| -------------------------- | ----------------------------------------------------- |
-| `npm run dev`              | Запуск с hot-reload (tsx watch)                       |
-| `npm run build`            | Сборка в `dist/` (tsc + tsc-alias)                    |
-| `npm run typecheck`        | Проверка типов                                        |
-| `npm run lint`             | ESLint                                                |
-| `npm test`                 | Тесты (vitest); интеграционные требуют `DATABASE_URL` |
-| `npm run test:coverage`    | Тесты с покрытием (v8)                                |
-| `npm run migrate`          | Применить миграции (только вперёд)                    |
-| `npm run seed`             | Идемпотентный сид демо-данных                         |
-| `npm run db:generate`      | Сгенерировать миграцию из Drizzle-схем                |
-| `npm run openapi:print`    | Напечатать OpenAPI-спеку в stdout                     |
-| `npm run openapi:validate` | Проверить спеку против схемы OpenAPI 3.1              |
+| Команда                     | Назначение                                            |
+| --------------------------- | ----------------------------------------------------- |
+| `npm run dev`               | Запуск с hot-reload (tsx watch)                       |
+| `npm run build`             | Сборка в `dist/` (tsc + tsc-alias)                    |
+| `npm run typecheck`         | Проверка типов                                        |
+| `npm run lint`              | ESLint                                                |
+| `npm test`                  | Тесты (vitest); интеграционные требуют `DATABASE_URL` |
+| `npm run test:coverage`     | Тесты с покрытием (v8)                                |
+| `npm run migrate`           | Применить миграции (только вперёд)                    |
+| `npm run create-first-user` | Bootstrap: первый диспетчер при пустой `users` (прод) |
+| `npm run seed`              | Идемпотентный сид демо-данных                         |
+| `npm run db:generate`       | Сгенерировать миграцию из Drizzle-схем                |
+| `npm run openapi:print`     | Напечатать OpenAPI-спеку в stdout                     |
+| `npm run openapi:validate`  | Проверить спеку против схемы OpenAPI 3.1              |
 
 ## Демо-учётки (сид)
 
