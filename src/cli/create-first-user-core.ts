@@ -16,7 +16,11 @@ export class CreateFirstUserError extends Error {}
 
 // Зеркало createUserBodySchema (src/modules/users/schemas.ts) — CLI не проходит через
 // Fastify/TypeBox-валидацию тела запроса, поэтому границы проверяются вручную.
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+// Regex — точная копия fullFormats.email из ajv-formats (Fastify 5 включает их по умолчанию):
+// более либеральный паттерн позволил бы создать аккаунт, который loginBodySchema
+// (format: 'email') отвергнет на логине с 422 — а повторный запуск скрипта откажет.
+const EMAIL_REGEX =
+  /^[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/i;
 const EMAIL_MIN_LENGTH = 3;
 const EMAIL_MAX_LENGTH = 320;
 const PASSWORD_MIN_LENGTH = 12;

@@ -95,6 +95,21 @@ describe.runIf(databaseUrl)('createFirstUser', () => {
       expect(await findAuthRecordByEmail(db, attemptedEmail)).toBeNull();
     });
 
+    it('email, который отвергает loginBodySchema (не-ASCII), → отказ без создания записи', async () => {
+      // Регрессия к ревью PR #7: CLI-regex либеральнее AJV format: 'email' позволял
+      // создать аккаунт, под которым нельзя залогиниться (422 на /v1/auth/login).
+      const email = 'иван@пример.рф';
+      await expect(
+        createFirstUser(
+          db,
+          { email, password: 'a-long-enough-password', displayName: 'Кто-то' },
+          logger,
+        ),
+      ).rejects.toThrow(CreateFirstUserError);
+
+      expect(await findAuthRecordByEmail(db, email)).toBeNull();
+    });
+
     it('пустой email → отказ без создания записи', async () => {
       const email = '';
       await expect(
