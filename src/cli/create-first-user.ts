@@ -13,9 +13,11 @@ import { makeEphemeralJwtEnv } from './ephemeral-jwt-env.js';
 const config = loadConfig({ ...makeEphemeralJwtEnv(), ...process.env });
 const logger = pino({ level: config.logLevel });
 
-const email = process.env.FIRST_USER_EMAIL ?? process.argv[2];
-const password = process.env.FIRST_USER_PASSWORD ?? process.argv[3];
-const displayName = process.env.FIRST_USER_NAME ?? process.argv[4] ?? 'Диспетчер';
+// Вход только через env: позиционные argv не принимаются — аргументы командной строки
+// видны всем пользователям хоста через ps / /proc/<pid>/cmdline (CWE-214), env — нет.
+const email = process.env.FIRST_USER_EMAIL;
+const password = process.env.FIRST_USER_PASSWORD;
+const displayName = process.env.FIRST_USER_NAME ?? 'Диспетчер';
 
 if (email === undefined || password === undefined) {
   logger.error(
