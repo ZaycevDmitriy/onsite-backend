@@ -1,11 +1,30 @@
 # Self-host продакшн-стек Onsite (T-19, фаза 6): caddy (TLS) → api, postgres, minio (фото),
 # prometheus (метрики), backup-postgres/backup-minio (NFR-03). Секреты — только из .env
 # (см. .env.production.example), дефолтов вида `onsite`/`minioadmin` здесь нет намеренно.
-# Запуск: docker compose -f compose.production.yml --env-file .env.production up -d
+#
+# api/migrate используют готовый образ из GHCR (release.yml публикует его после каждого релиза
+# main) — сборка на VPS не нужна. Запуск: docker compose -f compose.production.yml
+# --env-file .env.production up -d. Обновление: docker compose -f compose.production.yml
+# --env-file .env.production pull && docker compose -f compose.production.yml
+# --env-file .env.production up -d.
+#
+# Первичная инициализация (первый диспетчер, взамен ручного INSERT — docs/deployment.md):
+# docker compose -f compose.production.yml --env-file .env.production run --rm \
+#   -e FIRST_USER_EMAIL=... -e FIRST_USER_PASSWORD=... api node dist/cli/create-first-user.js
+
+# Ротация docker-логов: json-file без лимита на долгоживущем VPS заполнит диск (pino пишет
+# JSON в stdout непрерывно) — лимит применяется ко всем сервисам через якорь.
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: '10m'
+    max-file: '3'
+
 services:
   caddy:
     image: caddy:2-alpine
     restart: unless-stopped
+    logging: *default-logging
     ports:
       - '80:80'
       - '443:443'
@@ -18,14 +37,15 @@ services:
       - caddy-data:/data
       - caddy-config:/config
     depends_on:
-      - api
-      - minio
+      api:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
 
   api:
-    build:
-      context: .
-      target: runtime
+    image: ghcr.io/zaycevdmitriy/onsite-backend:${APP_VERSION:-latest}
     restart: unless-stopped
+    logging: *default-logging
     environment:
       NODE_ENV: production
       HOST: 0.0.0.0
@@ -53,6 +73,20 @@ services:
     # Порт наружу НЕ публикуется: единственная публичная точка входа — Caddy (OWASP-аудит T-19).
     expose:
       - '3000'
+    # В образе нет curl/wget — используем встроенный fetch (Node 24). /v1/health проверяет
+    # и БД (deps.db) — падение postgres тоже помечает api unhealthy, это осознанное поведение.
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:3000/v1/health').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
     depends_on:
       postgres:
         condition: service_healthy
@@ -64,10 +98,9 @@ services:
   # One-shot: только миграции. Seed НЕ запускается в проде намеренно — демо-аккаунты
   # (dispatcher123/technician123) не должны существовать за пределами dev-стенда (находка OWASP-аудита T-19).
   migrate:
-    build:
-      context: .
-      target: build
-    command: npx tsx scripts/migrate.ts
+    image: ghcr.io/zaycevdmitriy/onsite-backend:${APP_VERSION:-latest}
+    command: node dist/cli/migrate.js
+    logging: *default-logging
     environment:
       NODE_ENV: production
       LOG_LEVEL: ${LOG_LEVEL:-info}
@@ -79,6 +112,7 @@ services:
   postgres:
     image: postgres:16
     restart: unless-stopped
+    logging: *default-logging
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -97,6 +131,7 @@ services:
     image: minio/minio:latest
     restart: unless-stopped
     command: server /data --console-address ':9001'
+    logging: *default-logging
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
@@ -113,6 +148,7 @@ services:
   # One-shot: создаёт бакет фотоотчётов.
   minio-init:
     image: minio/mc:latest
+    logging: *default-logging
     entrypoint: >
       sh -c "mc alias set local http://minio:9000 $$MINIO_ROOT_USER $$MINIO_ROOT_PASSWORD &&
              mc mb --ignore-existing local/$${S3_BUCKET:-onsite-photos}"
@@ -129,6 +165,7 @@ services:
   prometheus:
     image: prom/prometheus:latest
     restart: unless-stopped
+    logging: *default-logging
     volumes:
       - ./deploy/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - ./deploy/prometheus/alert-rules.yml:/etc/prometheus/alert-rules.yml:ro
@@ -141,6 +178,7 @@ services:
   backup-postgres:
     image: postgres:16-alpine
     restart: unless-stopped
+    logging: *default-logging
     entrypoint: sh /backup/backup-postgres.sh
     environment:
       POSTGRES_HOST: postgres
@@ -158,6 +196,7 @@ services:
   backup-minio:
     image: minio/mc:latest
     restart: unless-stopped
+    logging: *default-logging
     entrypoint: sh /backup/backup-minio.sh
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
