@@ -24,6 +24,13 @@ export interface IUpdateUserPatch {
   passwordHash?: string;
 }
 
+/** true, если в таблице есть хотя бы одна запись (bootstrap-проверка для create-first-user). */
+export const selectAnyUserExists = async (db: NodePgDatabase): Promise<boolean> => {
+  const rows = await db.select({ id: users.id }).from(users).limit(1);
+
+  return rows.length > 0;
+};
+
 /** Ищет пользователя по id. */
 export const findUserById = async (db: NodePgDatabase, id: string): Promise<IUserRow | null> => {
   const rows = await db.select().from(users).where(eq(users.id, id)).limit(1);

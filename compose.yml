@@ -40,12 +40,12 @@ services:
 
   # One-shot: применяет миграции и сид перед стартом api.
   # S3_*-поля намеренно не заданы: migrate/seed не создают S3-клиент, ephemeral-хелпер
-  # (scripts/ephemeral-jwt-env.ts) подставляет дамми-значения только для валидации конфига.
+  # (src/cli/ephemeral-jwt-env.ts) подставляет дамми-значения только для валидации конфига.
   migrate:
     build:
       context: .
       target: build
-    command: sh -c "npx tsx scripts/migrate.ts && npx tsx scripts/seed.ts"
+    command: sh -c "npx tsx src/cli/migrate.ts && npx tsx scripts/seed.ts"
     environment:
       NODE_ENV: production
       LOG_LEVEL: ${LOG_LEVEL:-info}

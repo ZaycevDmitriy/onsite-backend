@@ -1,7 +1,6 @@
 import { buildApp } from '@/app.js';
+import { makeEphemeralJwtEnv } from '@/cli/ephemeral-jwt-env.js';
 import { loadConfig } from '@/shared/config/index.js';
-
-import { makeEphemeralJwtEnv } from './ephemeral-jwt-env.js';
 
 // Печатает OpenAPI-спеку в stdout: используется CI для валидации контракта.
 // БД не нужна: подключение ленивое, схема собирается из зарегистрированных роутов.

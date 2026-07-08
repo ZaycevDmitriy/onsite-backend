@@ -8,6 +8,7 @@ import {
   findUserById,
   findUserByIdForShare,
   insertUser,
+  selectAnyUserExists,
   updateUserById,
   type DbClient,
   type IUserRow,
@@ -105,6 +106,9 @@ export const getActiveUserForShare = async (
 
   return { id: row.id, role: row.role };
 };
+
+/** true, если в системе уже есть хотя бы один пользователь (bootstrap-скрипт create-first-user). */
+export const hasAnyUsers = async (db: NodePgDatabase): Promise<boolean> => selectAnyUserExists(db);
 
 /** Возвращает данные для проверки пароля при логине или null. */
 export const findAuthRecordByEmail = async (

@@ -2,9 +2,8 @@ import { Validator } from '@seriousme/openapi-schema-validator';
 import { pino } from 'pino';
 
 import { buildApp } from '@/app.js';
+import { makeEphemeralJwtEnv } from '@/cli/ephemeral-jwt-env.js';
 import { loadConfig } from '@/shared/config/index.js';
-
-import { makeEphemeralJwtEnv } from './ephemeral-jwt-env.js';
 
 // Валидация OpenAPI-спеки против схемы OpenAPI 3.1 (шаг CI).
 const logger = pino({ level: process.env.LOG_LEVEL ?? 'info' });
