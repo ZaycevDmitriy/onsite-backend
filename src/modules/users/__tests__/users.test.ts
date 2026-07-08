@@ -244,6 +244,44 @@ describe.runIf(databaseUrl)('управление пользователями',
     await loginAs(target.email, 'brand-new-password');
   });
 
+  it('деактивация отзывает refresh-сессии: реактивация не воскрешает прежний refresh', async () => {
+    const target = await seedUser('technician');
+    const loginResponse = await app.inject({
+      method: 'POST',
+      url: '/v1/auth/login',
+      payload: { email: target.email, password: PASSWORD },
+    });
+    const { refreshToken } = loginResponse.json<{ refreshToken: string }>();
+
+    const deactivate = await app.inject({
+      method: 'PATCH',
+      url: `/v1/users/${target.id}`,
+      headers: authHeaders(dispatcherToken),
+      payload: { isActive: false },
+    });
+    expect(deactivate.statusCode).toBe(200);
+
+    const reactivate = await app.inject({
+      method: 'PATCH',
+      url: `/v1/users/${target.id}`,
+      headers: authHeaders(dispatcherToken),
+      payload: { isActive: true },
+    });
+    expect(reactivate.statusCode).toBe(200);
+    expect(reactivate.json<{ isActive: boolean }>().isActive).toBe(true);
+
+    // Сессии отозваны при деактивации: старый refresh мёртв даже после реактивации.
+    const refreshAttempt = await app.inject({
+      method: 'POST',
+      url: '/v1/auth/refresh',
+      payload: { refreshToken },
+    });
+    expect(refreshAttempt.statusCode).toBe(401);
+
+    // Сам пользователь снова активен и логинится заново.
+    await loginAs(target.email);
+  });
+
   it('несуществующий пользователь → 404', async () => {
     const response = await app.inject({
       method: 'PATCH',
