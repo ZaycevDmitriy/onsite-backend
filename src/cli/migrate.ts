@@ -9,6 +9,8 @@ import { makeEphemeralJwtEnv } from './ephemeral-jwt-env.js';
 
 // Раннер миграций: только вперёд, каталог drizzle/ — единственный источник DDL.
 // JWT-ключи миграциям не нужны: эпемерная пара только для валидации конфига.
+// В проде запускается как node dist/cli/migrate.js из WORKDIR /app — './drizzle' резолвится
+// относительно CWD и совпадает с каталогом, скопированным в runtime-образ (Dockerfile).
 const config = loadConfig({ ...makeEphemeralJwtEnv(), ...process.env });
 const logger = pino({ level: config.logLevel });
 

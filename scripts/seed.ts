@@ -1,10 +1,10 @@
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { pino } from 'pino';
 
+import { makeEphemeralJwtEnv } from '@/cli/ephemeral-jwt-env.js';
 import { loadConfig } from '@/shared/config/index.js';
 import { createPool } from '@/shared/db/index.js';
 
-import { makeEphemeralJwtEnv } from './ephemeral-jwt-env.js';
 import { runSeed } from './seed-data.js';
 
 // Сид создаёт пользователей с фиксированными демо-паролями: против production-БД не запускается.

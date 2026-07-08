@@ -1,7 +1,7 @@
 import { generateKeyPairSync } from 'node:crypto';
 
 /**
- * Эпемерная пара RS256 + дамми S3-значения для оффлайн-скриптов (migrate/seed/openapi:print/validate):
+ * Эпемерная пара RS256 + дамми S3-значения для оффлайн-скриптов (migrate/create-first-user/seed/openapi:print/validate):
  * реальные ключи и S3 не нужны — JWT не выпускаются, S3-клиенты не ходят в сеть при создании
  * (решение #13 плана фазы 4). Значения из process.env имеют приоритет.
  */
