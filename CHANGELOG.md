@@ -1,3 +1,10 @@
+## [1.5.1](https://github.com/ZaycevDmitriy/onsite-backend/compare/v1.5.0...v1.5.1) (2026-07-08)
+
+
+### Bug Fixes
+
+* уникальный индекс на refresh_sessions.token_hash ([334eeda](https://github.com/ZaycevDmitriy/onsite-backend/commit/334eeda46500ef09126cf76b966056e059aa9c10))
+
 # [1.5.0](https://github.com/ZaycevDmitriy/onsite-backend/compare/v1.4.0...v1.5.0) (2026-07-07)
 
 
