@@ -38,6 +38,8 @@ describe('loadConfig', () => {
       jwtPublicKey: publicKey,
       accessTokenTtlSec: 900,
       refreshTokenTtlSec: 2592000,
+      refreshCleanupIntervalMin: 60,
+      refreshExpiredGraceDays: 7,
       s3Endpoint: 'http://localhost:9000',
       s3PublicEndpoint: 'http://localhost:9000',
       s3Region: 'us-east-1',

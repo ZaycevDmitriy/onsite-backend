@@ -50,6 +50,10 @@ export const envSchema = Type.Object({
   ACCESS_TOKEN_TTL_SEC: Type.Number({ minimum: 1, default: 900 }),
   // TTL refresh-токена в секундах (30 дней по умолчанию).
   REFRESH_TOKEN_TTL_SEC: Type.Number({ minimum: 1, default: 2592000 }),
+  // Интервал запуска зачистки просроченных refresh-сессий в минутах.
+  REFRESH_CLEANUP_INTERVAL_MIN: Type.Number({ minimum: 1, default: 60 }),
+  // Grace-период после expiresAt перед удалением сессии в днях (буфер для расследования инцидентов).
+  REFRESH_EXPIRED_GRACE_DAYS: Type.Number({ minimum: 0, default: 7 }),
   // S3/MinIO: внутренний эндпоинт (api → хранилище по docker-сети).
   S3_ENDPOINT: Type.String({ minLength: 1 }),
   // Публичный эндпоинт для подписи presigned URL, доступного клиенту; по умолчанию — S3_ENDPOINT.

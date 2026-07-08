@@ -68,7 +68,7 @@ export const usersRoutes: FastifyPluginAsyncTypebox<IUsersRoutesOptions> =
         },
       },
       async (request) => {
-        const { user, passwordChanged } = await updateUser(
+        const { user, passwordChanged, deactivated } = await updateUser(
           app.db,
           request.params.id,
           request.body,
@@ -76,8 +76,13 @@ export const usersRoutes: FastifyPluginAsyncTypebox<IUsersRoutesOptions> =
           request.log,
         );
 
-        // Сброс пароля инвалидирует все refresh-сессии пользователя.
-        if (passwordChanged) {
+        // Сброс пароля и деактивация инвалидируют все refresh-сессии пользователя:
+        // без отзыва реактивация воскресила бы старые refresh-токены (security-аудит, находка 1).
+        if (passwordChanged || deactivated) {
+          request.log.info(
+            { userId: user.id, passwordChanged, deactivated, fix: 'session-revocation' },
+            'отзыв всех refresh-сессий пользователя',
+          );
           await revokeAllUserSessions(user.id, request.log);
         }
 

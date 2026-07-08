@@ -1,6 +1,7 @@
 import { Expo } from 'expo-server-sdk';
 
 import { buildApp } from '@/app.js';
+import { cleanupExpiredSessions } from '@/modules/auth/index.js';
 import { runPushReceiptStage, runPushSendStage } from '@/modules/notifications/index.js';
 import { cleanupOrphanStagedPhotos } from '@/modules/photos/index.js';
 import { loadConfig } from '@/shared/config/index.js';
@@ -36,6 +37,26 @@ app.addHook('onClose', () => {
 });
 
 void runPhotoCleanup();
+
+// Зачистка просроченных refresh-сессий: первый прогон при старте, далее — по интервалу из конфига.
+const runRefreshSessionsCleanup = async (): Promise<void> => {
+  try {
+    await cleanupExpiredSessions(app.db, config.refreshExpiredGraceDays, app.log);
+  } catch (error) {
+    app.log.error({ err: error }, 'ошибка прогона зачистки просроченных refresh-сессий');
+  }
+};
+
+const refreshSessionsCleanupTimer = setInterval(
+  () => void runRefreshSessionsCleanup(),
+  config.refreshCleanupIntervalMin * 60_000,
+);
+
+app.addHook('onClose', () => {
+  clearInterval(refreshSessionsCleanupTimer);
+});
+
+void runRefreshSessionsCleanup();
 
 // Push-worker (T-16, решение #2 фазы 6): один цикл send → receipts на setInterval.
 const expoClient = new Expo(

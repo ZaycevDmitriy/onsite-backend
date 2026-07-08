@@ -6,6 +6,7 @@ import { findAuthRecordByEmail, getActiveUser, normalizeEmail } from '@/modules/
 import { AppError, ErrorCodeEnum } from '@/shared/errors/index.js';
 
 import {
+  deleteExpiredSessions,
   findSessionByTokenHash,
   insertSession,
   revokeFamilySessions,
@@ -28,6 +29,9 @@ const FAILED_ATTEMPTS_SWEEP_THRESHOLD = 1000;
 // Минимальный интервал между sweep'ами: полный проход по Map не чаще раза в 30 секунд,
 // иначе поток уникальных email выше порога даёт O(n) на каждую вставку (CPU-DoS).
 const SWEEP_MIN_INTERVAL_MS = 30 * 1000;
+
+// Размер пачки за один DELETE зачистки просроченных сессий (как photos/service.ts).
+const CLEANUP_BATCH_LIMIT = 100;
 
 // Фиктивный argon2id-хеш случайного пароля: выравнивает тайминг ответа
 // для несуществующего email — verify выполняется всегда (защита от enumeration).
@@ -277,4 +281,30 @@ export const createAuthService = (options: IAuthServiceOptions): IAuthService =>
       logger.info({ userId }, 'все refresh-сессии пользователя отозваны');
     },
   };
+};
+
+/**
+ * Зачистка просроченных refresh-сессий: удаляет строки с expiresAt < now() - graceDays
+ * (по revokedAt не удаляем — просроченная отозванная строка теряет ценность для replay-детекции
+ * независимо от revokedAt, см. план). Батч по CLEANUP_BATCH_LIMIT в цикле до исчерпания.
+ * Возвращает суммарное число удалённых строк.
+ */
+export const cleanupExpiredSessions = async (
+  db: NodePgDatabase,
+  graceDays: number,
+  logger: FastifyBaseLogger,
+): Promise<number> => {
+  const olderThan = new Date(Date.now() - graceDays * 24 * 60 * 60 * 1000);
+
+  let deleted = 0;
+  let batchDeleted: number;
+
+  do {
+    batchDeleted = await deleteExpiredSessions(db, olderThan, CLEANUP_BATCH_LIMIT);
+    deleted += batchDeleted;
+  } while (batchDeleted === CLEANUP_BATCH_LIMIT);
+
+  logger.info({ deleted }, 'зачистка просроченных refresh-сессий завершена');
+
+  return deleted;
 };

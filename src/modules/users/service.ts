@@ -58,6 +58,9 @@ export interface IUpdateUserResult {
   user: IUserView;
   // true — пароль сброшен, вызывающий обязан отозвать refresh-сессии.
   passwordChanged: boolean;
+  // true — пользователь деактивирован этим запросом, вызывающий обязан отозвать refresh-сессии:
+  // иначе реактивация воскресит старые refresh-токены (например, на утерянном устройстве).
+  deactivated: boolean;
 }
 
 /** Нормализует email: трим и нижний регистр. */
@@ -197,7 +200,12 @@ export const updateUser = async (
   }
 
   const passwordChanged = input.password !== undefined;
-  logger.info({ userId: id, passwordChanged, isActive: row.isActive }, 'пользователь обновлён');
+  // Повторный PATCH isActive=false тоже помечается: отзыв сессий идемпотентен.
+  const deactivated = input.isActive === false;
+  logger.info(
+    { userId: id, passwordChanged, deactivated, isActive: row.isActive },
+    'пользователь обновлён',
+  );
 
-  return { user: toUserView(row), passwordChanged };
+  return { user: toUserView(row), passwordChanged, deactivated };
 };

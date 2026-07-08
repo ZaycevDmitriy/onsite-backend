@@ -70,7 +70,10 @@ export const authPlugin = fp<IAuthPluginOptions>(
       },
       // requiredClaims обязателен: allowedIss/allowedAud в fast-jwt проверяют клейм,
       // только если он присутствует — токен без iss/aud иначе прошёл бы верификацию.
+      // algorithms пиннит RS256 явно: fast-jwt и сам выводит семейство из RSA-ключа,
+      // но пиннинг защищает от регрессий при смене библиотеки или типа ключа.
       verify: {
+        algorithms: ['RS256'],
         allowedIss: JWT_ISSUER,
         allowedAud: JWT_AUDIENCE,
         requiredClaims: ['iss', 'aud'],
