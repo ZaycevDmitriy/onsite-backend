@@ -1,4 +1,4 @@
-import { and, eq, isNull } from 'drizzle-orm';
+import { and, eq, inArray, isNull, lt } from 'drizzle-orm';
 
 import { refreshSessions } from './db-schema.js';
 
@@ -70,4 +70,29 @@ export const revokeSessionsByUserId = async (db: DbClient, userId: string): Prom
     .update(refreshSessions)
     .set({ revokedAt: new Date() })
     .where(and(eq(refreshSessions.userId, userId), isNull(refreshSessions.revokedAt)));
+};
+
+/**
+ * Удаляет одну пачку сессий, истекших раньше olderThan (не по revokedAt — просроченная
+ * отозванная строка теряет ценность для replay-детекции независимо от revokedAt).
+ * Батч через подзапрос с LIMIT — DELETE без LIMIT в pg недоступен.
+ * Возвращает число удалённых строк.
+ */
+export const deleteExpiredSessions = async (
+  db: DbClient,
+  olderThan: Date,
+  batchLimit: number,
+): Promise<number> => {
+  const candidates = db
+    .select({ id: refreshSessions.id })
+    .from(refreshSessions)
+    .where(lt(refreshSessions.expiresAt, olderThan))
+    .limit(batchLimit);
+
+  const deleted = await db
+    .delete(refreshSessions)
+    .where(inArray(refreshSessions.id, candidates))
+    .returning({ id: refreshSessions.id });
+
+  return deleted.length;
 };

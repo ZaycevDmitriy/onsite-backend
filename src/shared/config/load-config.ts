@@ -14,6 +14,8 @@ export interface IAppConfig {
   jwtPublicKey: string;
   accessTokenTtlSec: number;
   refreshTokenTtlSec: number;
+  refreshCleanupIntervalMin: number;
+  refreshExpiredGraceDays: number;
   // S3/MinIO: хранилище фотоотчётов.
   s3Endpoint: string;
   s3PublicEndpoint: string;
@@ -74,6 +76,8 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): IAppConfig => 
     jwtPublicKey: decodePemKey('JWT_PUBLIC_KEY', parsed.JWT_PUBLIC_KEY),
     accessTokenTtlSec: parsed.ACCESS_TOKEN_TTL_SEC,
     refreshTokenTtlSec: parsed.REFRESH_TOKEN_TTL_SEC,
+    refreshCleanupIntervalMin: parsed.REFRESH_CLEANUP_INTERVAL_MIN,
+    refreshExpiredGraceDays: parsed.REFRESH_EXPIRED_GRACE_DAYS,
     s3Endpoint: parsed.S3_ENDPOINT,
     // Публичный эндпоинт по умолчанию совпадает с внутренним (решение #8).
     s3PublicEndpoint: parsed.S3_PUBLIC_ENDPOINT ?? parsed.S3_ENDPOINT,
