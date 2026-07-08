@@ -1,3 +1,15 @@
+# [1.6.0](https://github.com/ZaycevDmitriy/onsite-backend/compare/v1.5.1...v1.6.0) (2026-07-08)
+
+
+### Bug Fixes
+
+* **security:** закрыть low-находки аудита — отзыв сессий при деактивации, пиннинг RS256, trustProxy: 1 ([a5e338c](https://github.com/ZaycevDmitriy/onsite-backend/commit/a5e338c0d2dedf79c721ef1cca4080f8a971f5a9))
+
+
+### Features
+
+* зачистка просроченных refresh_sessions ([f60058d](https://github.com/ZaycevDmitriy/onsite-backend/commit/f60058d9e5dcdd1335f19b0082c0570e9c27090d))
+
 ## [1.5.1](https://github.com/ZaycevDmitriy/onsite-backend/compare/v1.5.0...v1.5.1) (2026-07-08)
 
 
