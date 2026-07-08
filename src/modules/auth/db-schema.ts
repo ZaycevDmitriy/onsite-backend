@@ -22,5 +22,7 @@ export const refreshSessions = pgTable(
     index('refresh_sessions_family_id_idx').on(table.familyId),
     // Уникальность хеша: поиск по токену — O(log n) вместо seq scan, дубликаты живых сессий исключены.
     uniqueIndex('refresh_sessions_token_hash_idx').on(table.tokenHash),
+    // Зачистка просроченных сессий фильтрует lt(expiresAt) — без индекса каждый батч DELETE делает seq scan.
+    index('refresh_sessions_expires_at_idx').on(table.expiresAt),
   ],
 );

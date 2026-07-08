@@ -126,6 +126,15 @@ describe('loadConfig', () => {
     expect(() => loadConfig({ ...validEnv, PORT: '70000' })).toThrow(ConfigError);
   });
 
+  it('падает на интервале зачистки выше maximum (переполнение setInterval)', () => {
+    expect(() => loadConfig({ ...validEnv, REFRESH_CLEANUP_INTERVAL_MIN: '99999' })).toThrow(
+      ConfigError,
+    );
+    expect(() => loadConfig({ ...validEnv, PHOTO_CLEANUP_INTERVAL_MIN: '99999' })).toThrow(
+      ConfigError,
+    );
+  });
+
   it('не включает значения env в сообщение об ошибке', () => {
     try {
       loadConfig({ ...validEnv, DATABASE_URL: '' });

@@ -51,7 +51,8 @@ export const envSchema = Type.Object({
   // TTL refresh-токена в секундах (30 дней по умолчанию).
   REFRESH_TOKEN_TTL_SEC: Type.Number({ minimum: 1, default: 2592000 }),
   // Интервал запуска зачистки просроченных refresh-сессий в минутах.
-  REFRESH_CLEANUP_INTERVAL_MIN: Type.Number({ minimum: 1, default: 60 }),
+  // maximum: значение > 35791 мин переполняет 32-битный таймаут setInterval — Node клампит до 1 мс.
+  REFRESH_CLEANUP_INTERVAL_MIN: Type.Number({ minimum: 1, maximum: 35000, default: 60 }),
   // Grace-период после expiresAt перед удалением сессии в днях (буфер для расследования инцидентов).
   REFRESH_EXPIRED_GRACE_DAYS: Type.Number({ minimum: 0, default: 7 }),
   // S3/MinIO: внутренний эндпоинт (api → хранилище по docker-сети).
@@ -69,7 +70,8 @@ export const envSchema = Type.Object({
   // TTL staged-фото до зачистки как сироты в часах (T-13).
   PHOTO_STAGED_TTL_HOURS: Type.Number({ minimum: 1, default: 168 }),
   // Интервал запуска зачистки сирот в минутах (T-13).
-  PHOTO_CLEANUP_INTERVAL_MIN: Type.Number({ minimum: 1, default: 60 }),
+  // maximum: значение > 35791 мин переполняет 32-битный таймаут setInterval — Node клампит до 1 мс.
+  PHOTO_CLEANUP_INTERVAL_MIN: Type.Number({ minimum: 1, maximum: 35000, default: 60 }),
   // Safety-lag курсора pull-синхронизации в единицах sync_seq (FR-08, NFR-08, решение #1 фазы 5).
   SYNC_SAFETY_LAG: Type.Number({ minimum: 0, default: 100 }),
   // Access-токен Expo Push Service (enhanced security) — опционален, без него запросы идут анонимно.
