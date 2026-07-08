@@ -1,3 +1,17 @@
+# [1.7.0](https://github.com/ZaycevDmitriy/onsite-backend/compare/v1.6.1...v1.7.0) (2026-07-08)
+
+
+### Bug Fixes
+
+* **cli:** create-first-user принимает вход только через env ([c82bdcd](https://github.com/ZaycevDmitriy/onsite-backend/commit/c82bdcd897bd0183c934bfc68ceae58011bf0b18))
+* **cli:** email-валидация create-first-user — точное зеркало ajv-formats ([3466833](https://github.com/ZaycevDmitriy/onsite-backend/commit/34668335ed00c354053dbd2240dae57a37cc51c8))
+
+
+### Features
+
+* **cli:** перенос migrate в src/cli и скрипт создания первого диспетчера ([b8e0562](https://github.com/ZaycevDmitriy/onsite-backend/commit/b8e0562ba4512e1749dc85e5474598cc46d1b542))
+* **deploy:** прод-стек из GHCR-образа, healthcheck api и ротация логов ([c0bbf0c](https://github.com/ZaycevDmitriy/onsite-backend/commit/c0bbf0c8ef534003f20bbc54cc24ec206a2ebdc3))
+
 ## [1.6.1](https://github.com/ZaycevDmitriy/onsite-backend/compare/v1.6.0...v1.6.1) (2026-07-08)
 
 
