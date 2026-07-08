@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, uuid, index } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, uuid, index, uniqueIndex } from 'drizzle-orm/pg-core';
 
 // Импорт чужой db-schema допустим только на уровне схемы — для FK-ссылок.
 import { users } from '../users/db-schema.js';
@@ -20,5 +20,7 @@ export const refreshSessions = pgTable(
   (table) => [
     index('refresh_sessions_user_id_idx').on(table.userId),
     index('refresh_sessions_family_id_idx').on(table.familyId),
+    // Уникальность хеша: поиск по токену — O(log n) вместо seq scan, дубликаты живых сессий исключены.
+    uniqueIndex('refresh_sessions_token_hash_idx').on(table.tokenHash),
   ],
 );
