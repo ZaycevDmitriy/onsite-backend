@@ -21,9 +21,7 @@ import type { IOutboxTicket } from './db-schema.js';
 // структурно без обёртки, тесты подставляют фейк — воркер не тянет сетевой клиент в юнит-тесты.
 export interface IExpoClient {
   sendPushNotificationsAsync(messages: ExpoPushMessage[]): Promise<ExpoPushTicket[]>;
-  getPushNotificationReceiptsAsync(
-    receiptIds: string[],
-  ): Promise<Record<string, ExpoPushReceipt>>;
+  getPushNotificationReceiptsAsync(receiptIds: string[]): Promise<Record<string, ExpoPushReceipt>>;
 }
 
 export interface IPushWorkerOptions {
@@ -57,7 +55,7 @@ interface IPushMessagePayload {
   data?: Record<string, unknown>;
 }
 
-const chunkArray = <T,>(items: T[], size: number): T[][] => {
+const chunkArray = <T>(items: T[], size: number): T[][] => {
   const chunks: T[][] = [];
 
   for (let i = 0; i < items.length; i += size) {
@@ -186,7 +184,10 @@ export const runPushSendStage = async (
       if (activeDevices.length === 0) {
         await markOutboxAttemptFailed(tx, row, 'No active devices for user', options.maxAttempts);
         failed += 1;
-        logger.debug({ outboxId: row.id, userId: row.userId }, 'push-worker: нет активных устройств');
+        logger.debug(
+          { outboxId: row.id, userId: row.userId },
+          'push-worker: нет активных устройств',
+        );
         continue;
       }
 

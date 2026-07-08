@@ -217,7 +217,9 @@ const processStatusChangeMutation = async (
   }
 
   const result =
-    transition.result === 'applied' ? SyncMutationResultEnum.Applied : SyncMutationResultEnum.Conflict;
+    transition.result === 'applied'
+      ? SyncMutationResultEnum.Applied
+      : SyncMutationResultEnum.Conflict;
 
   return { mutationId: mutation.mutationId, result, order: transition.order };
 };
@@ -296,10 +298,7 @@ export const applyMutationBatch = async (
   deps: IApplyMutationBatchDeps,
   logger: FastifyBaseLogger,
 ): Promise<ISyncMutationVerdict[]> => {
-  logger.debug(
-    { count: mutations.length, requesterId: requester.id },
-    'sync: приём батча мутаций',
-  );
+  logger.debug({ count: mutations.length, requesterId: requester.id }, 'sync: приём батча мутаций');
 
   const verdicts: ISyncMutationVerdict[] = [];
 
@@ -347,7 +346,10 @@ export const applyMutationBatch = async (
             { mutationId: mutation.mutationId, userId: requester.id },
             'sync: mutationId занят вердиктом другого пользователя — мутация отклонена',
           );
-          verdicts.push({ mutationId: mutation.mutationId, result: SyncMutationResultEnum.Rejected });
+          verdicts.push({
+            mutationId: mutation.mutationId,
+            result: SyncMutationResultEnum.Rejected,
+          });
         }
         continue;
       }

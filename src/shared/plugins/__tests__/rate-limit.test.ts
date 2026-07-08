@@ -16,11 +16,9 @@ describe('rateLimitPlugin', () => {
 
     app.get('/rl/global', () => ({ ok: true }));
     app.get('/rl/unlimited', { config: { rateLimit: false } }, () => ({ ok: true }));
-    app.get(
-      '/rl/strict',
-      { config: { rateLimit: { max: 1, timeWindow: 60_000 } } },
-      () => ({ ok: true }),
-    );
+    app.get('/rl/strict', { config: { rateLimit: { max: 1, timeWindow: 60_000 } } }, () => ({
+      ok: true,
+    }));
 
     await app.ready();
   });

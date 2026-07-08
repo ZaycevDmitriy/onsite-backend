@@ -40,7 +40,4 @@ export {
   type IUpdateOrderInput,
 } from './service.js';
 export { getCurrentSyncSeq } from './repository.js';
-export type {
-  IListOrdersForSyncFilters,
-  IListUnassignedTombstonesFilters,
-} from './repository.js';
+export type { IListOrdersForSyncFilters, IListUnassignedTombstonesFilters } from './repository.js';

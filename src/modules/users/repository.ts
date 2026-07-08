@@ -25,10 +25,7 @@ export interface IUpdateUserPatch {
 }
 
 /** Ищет пользователя по id. */
-export const findUserById = async (
-  db: NodePgDatabase,
-  id: string,
-): Promise<IUserRow | null> => {
+export const findUserById = async (db: NodePgDatabase, id: string): Promise<IUserRow | null> => {
   const rows = await db.select().from(users).where(eq(users.id, id)).limit(1);
 
   return rows[0] ?? null;

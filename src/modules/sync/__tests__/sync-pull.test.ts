@@ -244,7 +244,8 @@ describe.runIf(databaseUrl)('sync pull (FR-08)', () => {
 
     const after = await pull(technician1Token, `?cursor=${before.nextCursor}`);
     const tombstones = after.items.filter(
-      (item): item is ISyncUnassignedItem => item.type === 'unassigned' && item.orderId === order.id,
+      (item): item is ISyncUnassignedItem =>
+        item.type === 'unassigned' && item.orderId === order.id,
     );
     expect(tombstones).toHaveLength(1);
     expect(after.items.some((item) => item.type === 'order' && item.order.id === order.id)).toBe(

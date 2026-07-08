@@ -15,59 +15,61 @@ export interface IAuthRoutesOptions {
 export const authRoutes: FastifyPluginAsyncTypebox<IAuthRoutesOptions> =
   // eslint-disable-next-line @typescript-eslint/require-await -- Сигнатура async-плагина Fastify.
   async (app, { authService, rateLimit }) => {
-  const authRateLimitConfig = { rateLimit: { max: rateLimit.max, timeWindow: rateLimit.timeWindowMs } };
+    const authRateLimitConfig = {
+      rateLimit: { max: rateLimit.max, timeWindow: rateLimit.timeWindowMs },
+    };
 
-  app.post(
-    '/v1/auth/login',
-    {
-      config: authRateLimitConfig,
-      schema: {
-        tags: ['auth'],
-        body: loginBodySchema,
-        response: {
-          200: tokenPairSchema,
-          401: errorEnvelopeSchema,
-          429: errorEnvelopeSchema,
+    app.post(
+      '/v1/auth/login',
+      {
+        config: authRateLimitConfig,
+        schema: {
+          tags: ['auth'],
+          body: loginBodySchema,
+          response: {
+            200: tokenPairSchema,
+            401: errorEnvelopeSchema,
+            429: errorEnvelopeSchema,
+          },
         },
       },
-    },
-    async (request) => authService.login(request.body.email, request.body.password, request.log),
-  );
+      async (request) => authService.login(request.body.email, request.body.password, request.log),
+    );
 
-  app.post(
-    '/v1/auth/refresh',
-    {
-      config: authRateLimitConfig,
-      schema: {
-        tags: ['auth'],
-        body: refreshBodySchema,
-        response: {
-          200: tokenPairSchema,
-          401: errorEnvelopeSchema,
-          429: errorEnvelopeSchema,
+    app.post(
+      '/v1/auth/refresh',
+      {
+        config: authRateLimitConfig,
+        schema: {
+          tags: ['auth'],
+          body: refreshBodySchema,
+          response: {
+            200: tokenPairSchema,
+            401: errorEnvelopeSchema,
+            429: errorEnvelopeSchema,
+          },
         },
       },
-    },
-    async (request) => authService.refresh(request.body.refreshToken, request.log),
-  );
+      async (request) => authService.refresh(request.body.refreshToken, request.log),
+    );
 
-  app.post(
-    '/v1/auth/logout',
-    {
-      config: authRateLimitConfig,
-      schema: {
-        tags: ['auth'],
-        body: refreshBodySchema,
-        response: {
-          204: { type: 'null', description: 'Сессия отозвана' },
-          429: errorEnvelopeSchema,
+    app.post(
+      '/v1/auth/logout',
+      {
+        config: authRateLimitConfig,
+        schema: {
+          tags: ['auth'],
+          body: refreshBodySchema,
+          response: {
+            204: { type: 'null', description: 'Сессия отозвана' },
+            429: errorEnvelopeSchema,
+          },
         },
       },
-    },
-    async (request, reply) => {
-      await authService.logout(request.body.refreshToken, request.log);
+      async (request, reply) => {
+        await authService.logout(request.body.refreshToken, request.log);
 
-      return reply.code(204).send(null);
-    },
-  );
-};
+        return reply.code(204).send(null);
+      },
+    );
+  };

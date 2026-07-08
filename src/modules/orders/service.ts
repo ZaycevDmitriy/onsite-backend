@@ -377,7 +377,10 @@ export const listOrdersForSync = async (
   filters: IListOrdersForSyncFilters,
   logger: FastifyBaseLogger,
 ): Promise<IOrderView[]> => {
-  logger.debug({ assignedTo: filters.assignedTo, cursor: filters.cursor }, 'sync: список заявок по курсору');
+  logger.debug(
+    { assignedTo: filters.assignedTo, cursor: filters.cursor },
+    'sync: список заявок по курсору',
+  );
 
   const rows = await listOrdersForSyncRepo(db, filters);
 
@@ -398,7 +401,10 @@ export const listUnassignedTombstones = async (
   filters: IListUnassignedTombstonesFilters,
   logger: FastifyBaseLogger,
 ): Promise<IUnassignedTombstoneView[]> => {
-  logger.debug({ userId: filters.userId, cursor: filters.cursor }, 'sync: список tombstone по курсору');
+  logger.debug(
+    { userId: filters.userId, cursor: filters.cursor },
+    'sync: список tombstone по курсору',
+  );
 
   const rows = await listUnassignedTombstonesRepo(db, filters);
 

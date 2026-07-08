@@ -40,8 +40,7 @@ export interface IBuildSyncPageResult<TOrder> {
 export const mergeSyncStreams = <TOrder>(
   orderItems: ISyncOrderPullItem<TOrder>[],
   tombstoneItems: ISyncUnassignedPullItem[],
-): ISyncPullItem<TOrder>[] =>
-  [...orderItems, ...tombstoneItems].sort((a, b) => a.seq - b.seq);
+): ISyncPullItem<TOrder>[] => [...orderItems, ...tombstoneItems].sort((a, b) => a.seq - b.seq);
 
 /**
  * Курсор следующей страницы pull (FR-08, NFR-08, решение #1 фазы 5):

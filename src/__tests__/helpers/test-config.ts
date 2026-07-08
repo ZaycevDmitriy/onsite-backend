@@ -10,7 +10,10 @@ const { privateKey, publicKey } = generateKeyPairSync('rsa', {
 });
 
 /** Собирает IAppConfig для интеграционных тестов с тестовыми JWT-ключами. */
-export const makeTestConfig = (databaseUrl: string, overrides: Partial<IAppConfig> = {}): IAppConfig => ({
+export const makeTestConfig = (
+  databaseUrl: string,
+  overrides: Partial<IAppConfig> = {},
+): IAppConfig => ({
   nodeEnv: 'test',
   host: '127.0.0.1',
   port: 0,

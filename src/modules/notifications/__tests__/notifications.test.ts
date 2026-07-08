@@ -81,7 +81,10 @@ describe.runIf(databaseUrl)('регистрация устройств', () => {
 
     expect(response.statusCode).toBe(204);
 
-    const rows = await app.db.select().from(devices).where(eq(devices.expoPushToken, expoPushToken));
+    const rows = await app.db
+      .select()
+      .from(devices)
+      .where(eq(devices.expoPushToken, expoPushToken));
     expect(rows).toHaveLength(1);
     expect(rows[0]?.userId).toBe(technician.id);
     expect(rows[0]?.isActive).toBe(true);
@@ -107,7 +110,10 @@ describe.runIf(databaseUrl)('регистрация устройств', () => {
 
     expect(second.statusCode).toBe(204);
 
-    const rows = await app.db.select().from(devices).where(eq(devices.expoPushToken, expoPushToken));
+    const rows = await app.db
+      .select()
+      .from(devices)
+      .where(eq(devices.expoPushToken, expoPushToken));
     expect(rows).toHaveLength(1);
   });
 
@@ -131,7 +137,10 @@ describe.runIf(databaseUrl)('регистрация устройств', () => {
 
     expect(rebind.statusCode).toBe(204);
 
-    const rows = await app.db.select().from(devices).where(eq(devices.expoPushToken, expoPushToken));
+    const rows = await app.db
+      .select()
+      .from(devices)
+      .where(eq(devices.expoPushToken, expoPushToken));
     expect(rows).toHaveLength(1);
     expect(rows[0]?.userId).toBe(secondOwner.id);
   });
