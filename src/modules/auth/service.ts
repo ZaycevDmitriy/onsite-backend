@@ -91,7 +91,9 @@ export const createAuthService = (options: IAuthServiceOptions): IAuthService =>
     state: { lockedUntil: number | null; lastFailureAt: number },
     now: number,
   ): boolean =>
-    state.lockedUntil !== null ? state.lockedUntil <= now : state.lastFailureAt + FAILURE_TTL_MS <= now;
+    state.lockedUntil !== null
+      ? state.lockedUntil <= now
+      : state.lastFailureAt + FAILURE_TTL_MS <= now;
 
   let lastSweepAt = 0;
 
@@ -199,7 +201,10 @@ export const createAuthService = (options: IAuthServiceOptions): IAuthService =>
       if (session.revokedAt !== null) {
         // Replay погашенного токена: отзывается вся семья (FR-02).
         await revokeFamilySessions(db, session.familyId);
-        logger.warn({ familyId: session.familyId, userId: session.userId }, 'replay refresh-токена: семья отозвана');
+        logger.warn(
+          { familyId: session.familyId, userId: session.userId },
+          'replay refresh-токена: семья отозвана',
+        );
         throw invalidRefreshError();
       }
 

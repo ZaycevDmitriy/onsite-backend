@@ -348,7 +348,11 @@ describe.runIf(databaseUrl && s3Endpoint)('sync e2e: офлайн-смена т�
       .from(orderEvents)
       .where(eq(orderEvents.orderId, order2.id))
       .orderBy(asc(orderEvents.id));
-    expect(order2Events.map((event) => event.type)).toEqual(['created', 'assigned', 'status_changed']);
+    expect(order2Events.map((event) => event.type)).toEqual([
+      'created',
+      'assigned',
+      'status_changed',
+    ]);
 
     // Итоговое состояние подтверждается pull: заявка 1 — Done с committed-фото, заявка 2 — InProgress.
     const finalPull = await pull(technicianToken);

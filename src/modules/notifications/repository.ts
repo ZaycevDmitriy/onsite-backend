@@ -27,13 +27,20 @@ export const findDeviceByToken = async (
   db: DbClient,
   expoPushToken: string,
 ): Promise<IDeviceRow | null> => {
-  const rows = await db.select().from(devices).where(eq(devices.expoPushToken, expoPushToken)).limit(1);
+  const rows = await db
+    .select()
+    .from(devices)
+    .where(eq(devices.expoPushToken, expoPushToken))
+    .limit(1);
 
   return rows[0] ?? null;
 };
 
 /** Вставляет новое устройство. */
-export const insertDevice = async (db: DbClient, input: IInsertDeviceInput): Promise<IDeviceRow> => {
+export const insertDevice = async (
+  db: DbClient,
+  input: IInsertDeviceInput,
+): Promise<IDeviceRow> => {
   const rows = await db.insert(devices).values(input).returning();
 
   // returning() по одной записи всегда отдаёт ровно одну строку.
@@ -118,7 +125,8 @@ export const markOutboxAttemptFailed = async (
   maxAttempts: number,
 ): Promise<void> => {
   const attempts = row.attempts + 1;
-  const status = attempts >= maxAttempts ? PushOutboxStatusEnum.Failed : PushOutboxStatusEnum.Pending;
+  const status =
+    attempts >= maxAttempts ? PushOutboxStatusEnum.Failed : PushOutboxStatusEnum.Pending;
 
   await db
     .update(pushOutbox)

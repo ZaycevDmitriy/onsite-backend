@@ -96,22 +96,23 @@ export const authPlugin = fp<IAuthPluginOptions>(
 
       // request.user перезаписывается данными из БД: роль актуальна, не из токена.
       request.user = activeUser;
-      request.log.debug({ userId: activeUser.id, role: activeUser.role }, 'запрос аутентифицирован');
+      request.log.debug(
+        { userId: activeUser.id, role: activeUser.role },
+        'запрос аутентифицирован',
+      );
     });
 
-    app.decorate(
-      'requireRole',
-      (role: AuthRole) =>
-        // eslint-disable-next-line @typescript-eslint/require-await -- Сигнатура preHandler Fastify.
-        async (request: FastifyRequest) => {
-          if (request.user.role !== role) {
-            request.log.debug(
-              { userId: request.user.id, requiredRole: role },
-              'доступ запрещён: недостаточная роль',
-            );
-            throw new AppError(403, ErrorCodeEnum.Forbidden, 'Insufficient role');
-          }
-        },
+    app.decorate('requireRole', (role: AuthRole) =>
+      // eslint-disable-next-line @typescript-eslint/require-await -- Сигнатура preHandler Fastify.
+      async (request: FastifyRequest) => {
+        if (request.user.role !== role) {
+          request.log.debug(
+            { userId: request.user.id, requiredRole: role },
+            'доступ запрещён: недостаточная роль',
+          );
+          throw new AppError(403, ErrorCodeEnum.Forbidden, 'Insufficient role');
+        }
+      },
     );
 
     app.log.debug('auth-плагин зарегистрирован (RS256)');

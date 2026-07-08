@@ -18,7 +18,10 @@ const tombstoneItem = (seq: number): ISyncUnassignedPullItem => ({
 
 describe('mergeSyncStreams', () => {
   it('сливает два потока в единый список, упорядоченный по seq', () => {
-    const merged = mergeSyncStreams([orderItem(1), orderItem(4)], [tombstoneItem(2), tombstoneItem(3)]);
+    const merged = mergeSyncStreams(
+      [orderItem(1), orderItem(4)],
+      [tombstoneItem(2), tombstoneItem(3)],
+    );
 
     expect(merged.map((item) => item.seq)).toEqual([1, 2, 3, 4]);
     expect(merged.map((item) => item.type)).toEqual(['order', 'unassigned', 'unassigned', 'order']);
@@ -37,28 +40,52 @@ describe('mergeSyncStreams', () => {
 
 describe('computeNextCursor', () => {
   it('пустая страница → курсор не двигается', () => {
-    const cursor = computeNextCursor({ page: [], hasMore: false, cursor: 42, currentMaxSeq: 100, safetyLag: 10 });
+    const cursor = computeNextCursor({
+      page: [],
+      hasMore: false,
+      cursor: 42,
+      currentMaxSeq: 100,
+      safetyLag: 10,
+    });
 
     expect(cursor).toBe(42);
   });
 
   it('есть ещё данные (hasMore) → курсор = seq последнего элемента страницы', () => {
     const page = [orderItem(5), orderItem(9)];
-    const cursor = computeNextCursor({ page, hasMore: true, cursor: 0, currentMaxSeq: 9, safetyLag: 100 });
+    const cursor = computeNextCursor({
+      page,
+      hasMore: true,
+      cursor: 0,
+      currentMaxSeq: 9,
+      safetyLag: 100,
+    });
 
     expect(cursor).toBe(9);
   });
 
   it('страница неполная (данных больше нет) → курсор = max(0, currentMaxSeq - safetyLag)', () => {
     const page = [orderItem(5)];
-    const cursor = computeNextCursor({ page, hasMore: false, cursor: 0, currentMaxSeq: 150, safetyLag: 100 });
+    const cursor = computeNextCursor({
+      page,
+      hasMore: false,
+      cursor: 0,
+      currentMaxSeq: 150,
+      safetyLag: 100,
+    });
 
     expect(cursor).toBe(50);
   });
 
   it('safetyLag больше currentMaxSeq → курсор не уходит в отрицательные значения', () => {
     const page = [orderItem(5)];
-    const cursor = computeNextCursor({ page, hasMore: false, cursor: 0, currentMaxSeq: 30, safetyLag: 100 });
+    const cursor = computeNextCursor({
+      page,
+      hasMore: false,
+      cursor: 0,
+      currentMaxSeq: 30,
+      safetyLag: 100,
+    });
 
     expect(cursor).toBe(0);
   });

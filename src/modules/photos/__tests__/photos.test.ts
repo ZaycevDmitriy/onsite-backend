@@ -76,7 +76,10 @@ const buildMultipartBody = (
 
   parts.push(Buffer.from(`--${MULTIPART_BOUNDARY}--\r\n`));
 
-  return { body: Buffer.concat(parts), contentType: `multipart/form-data; boundary=${MULTIPART_BOUNDARY}` };
+  return {
+    body: Buffer.concat(parts),
+    contentType: `multipart/form-data; boundary=${MULTIPART_BOUNDARY}`,
+  };
 };
 
 interface IPhotoView {
@@ -304,9 +307,8 @@ describe.runIf(databaseUrl && s3Endpoint)('модуль фото', () => {
       expect(photo.status).toBe('staged');
       expect(photo.orderId).toBe(order.id);
 
-      const key = (
-        await app.db.select().from(photos).where(eq(photos.id, photo.id))
-      )[0]?.storageKey;
+      const key = (await app.db.select().from(photos).where(eq(photos.id, photo.id)))[0]
+        ?.storageKey;
       if (key !== undefined) {
         createdStorageKeys.push(key);
       }
@@ -461,9 +463,7 @@ describe.runIf(databaseUrl && s3Endpoint)('модуль фото', () => {
     it('staged-фото не видно в GET /v1/orders/:id', async () => {
       const order = await createOrder();
       const uploaded = await uploadPhoto({ token: dispatcherToken, orderId: order.id });
-      const row = (
-        await app.db.select().from(photos).where(eq(photos.id, uploaded.json().id))
-      )[0];
+      const row = (await app.db.select().from(photos).where(eq(photos.id, uploaded.json().id)))[0];
       if (row !== undefined) {
         createdStorageKeys.push(row.storageKey);
       }
@@ -557,10 +557,7 @@ describe.runIf(databaseUrl && s3Endpoint)('модуль фото', () => {
       const remainingOld = await app.db.select().from(photos).where(eq(photos.id, oldPhoto.id));
       expect(remainingOld).toHaveLength(0);
 
-      const remainingFresh = await app.db
-        .select()
-        .from(photos)
-        .where(eq(photos.id, freshPhoto.id));
+      const remainingFresh = await app.db.select().from(photos).where(eq(photos.id, freshPhoto.id));
       expect(remainingFresh).toHaveLength(1);
       createdStorageKeys.push(freshKey);
       // oldPhoto уже удалён из БД зачисткой — не добавляем в createdPhotoIds/createdStorageKeys повторно.

@@ -67,7 +67,10 @@ export const registerDevice = async (
   }
 
   try {
-    const row = await insertDevice(db, { userId: requester.id, expoPushToken: input.expoPushToken });
+    const row = await insertDevice(db, {
+      userId: requester.id,
+      expoPushToken: input.expoPushToken,
+    });
     logger.info({ deviceId: row.id, userId: requester.id }, 'устройство зарегистрировано');
   } catch (error) {
     if (isUniqueViolation(error)) {
