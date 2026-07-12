@@ -1,3 +1,12 @@
+## [1.7.1](https://github.com/ZaycevDmitriy/onsite-backend/compare/v1.7.0...v1.7.1) (2026-07-12)
+
+
+### Bug Fixes
+
+* **config:** пустая строка env трактуется как отсутствие значения ([62f3518](https://github.com/ZaycevDmitriy/onsite-backend/commit/62f3518c79307d26dee59c62732ec4a8d6202a09))
+* **deploy:** ретеншн бэкапов MinIO без find ([f4f79a6](https://github.com/ZaycevDmitriy/onsite-backend/commit/f4f79a6f4ee39d43a8f92c6de316eabbeaaf5722))
+* **errors:** клиентские 4xx-ошибки Fastify не маскируются под 500 ([ff6add8](https://github.com/ZaycevDmitriy/onsite-backend/commit/ff6add8e389c728eb206aa965d8d72be9a384188))
+
 # [1.7.0](https://github.com/ZaycevDmitriy/onsite-backend/compare/v1.6.1...v1.7.0) (2026-07-08)
 
 
