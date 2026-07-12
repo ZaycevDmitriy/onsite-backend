@@ -74,6 +74,18 @@ describe('loadConfig', () => {
     expect(config.s3PublicEndpoint).toBe('http://public.example.com');
   });
 
+  it('трактует пустой EXPO_ACCESS_TOKEN как отсутствие токена (compose передаёт `${VAR:-}`)', () => {
+    const config = loadConfig({ ...validEnv, EXPO_ACCESS_TOKEN: '' });
+
+    expect(config.expoAccessToken).toBeUndefined();
+  });
+
+  it('трактует пустой S3_PUBLIC_ENDPOINT как отсутствие — берётся S3_ENDPOINT', () => {
+    const config = loadConfig({ ...validEnv, S3_PUBLIC_ENDPOINT: '' });
+
+    expect(config.s3PublicEndpoint).toBe(validEnv.S3_ENDPOINT);
+  });
+
   it('падает без обязательных S3-полей', () => {
     const withoutS3: Record<string, string> = { ...validEnv };
     delete withoutS3['S3_ENDPOINT'];

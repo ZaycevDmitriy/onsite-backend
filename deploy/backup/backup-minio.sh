@@ -20,7 +20,13 @@ while true; do
     rm -rf "$snapshot_dir"
   fi
 
-  find "$BACKUP_DIR" -maxdepth 1 -name 'minio-*' -type d -mtime "+$RETENTION_DAYS" -exec rm -rf {} +
+  # В образе minio/mc нет find — ретеншн по timestamp в имени каталога (лексикографическое сравнение).
+  cutoff="$(date -u -d "$RETENTION_DAYS days ago" +%Y%m%dT%H%M%SZ)"
+  for dir in "$BACKUP_DIR"/minio-*; do
+    [ -d "$dir" ] || continue
+    ts="${dir##*/minio-}"
+    [ "$ts" \< "$cutoff" ] && rm -rf "$dir"
+  done
   echo "backup-minio: следующий прогон через 24ч"
   sleep 86400
 done

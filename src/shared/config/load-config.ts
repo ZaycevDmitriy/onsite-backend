@@ -54,7 +54,10 @@ export class ConfigError extends Error {
  * В сообщениях об ошибках — только пути и правила, без значений (секреты не утекают).
  */
 export const loadConfig = (env: NodeJS.ProcessEnv = process.env): IAppConfig => {
-  const withDefaults = Default(envSchema, Clean(envSchema, { ...env }));
+  // Пустая строка трактуется как отсутствие значения: compose подставляет `${VAR:-}`
+  // для незаданных переменных, и Optional-поля с minLength иначе валят валидацию.
+  const normalized = Object.fromEntries(Object.entries(env).filter(([, value]) => value !== ''));
+  const withDefaults = Default(envSchema, Clean(envSchema, normalized));
   const converted = Convert(envSchema, withDefaults);
 
   if (!Check(envSchema, converted)) {
