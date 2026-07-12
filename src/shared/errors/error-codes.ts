@@ -9,6 +9,7 @@ export const ErrorCodeEnum = {
   InvalidCredentials: 'invalid_credentials',
   TooManyAttempts: 'too_many_attempts',
   EmailTaken: 'email_taken',
+  BadRequest: 'bad_request',
   InternalError: 'internal_error',
   FileTooLarge: 'file_too_large',
   UnsupportedMediaType: 'unsupported_media_type',

@@ -61,6 +61,33 @@ describe('buildApp: конверт ошибок', () => {
     });
   });
 
+  it('битый JSON при content-type application/json → 400 bad_request, не 500', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/test/echo',
+      headers: { 'content-type': 'application/json' },
+      payload: '{"value": не-json',
+    });
+
+    expect(response.statusCode).toBe(400);
+    const body = response.json<{ code: string; message: string }>();
+    expect(body.code).toBe('bad_request');
+    expect(body.message).toContain('JSON');
+  });
+
+  it('тело сверх bodyLimit → 413 file_too_large конвертом, не 500', async () => {
+    // Дефолтный bodyLimit Fastify — 1 МиБ: полтора мегабайта valid-JSON его превышают.
+    const response = await app.inject({
+      method: 'POST',
+      url: '/test/echo',
+      headers: { 'content-type': 'application/json' },
+      payload: `{"value": "${'x'.repeat(1_536_000)}"}`,
+    });
+
+    expect(response.statusCode).toBe(413);
+    expect(response.json<{ code: string }>().code).toBe('file_too_large');
+  });
+
   it('неожиданная ошибка → 500 без утечки сообщения и stack', async () => {
     const response = await app.inject({ method: 'GET', url: '/test/boom' });
 
