@@ -1,5 +1,7 @@
 import { Type } from 'typebox';
 
+import { userViewSchema } from '@/modules/users/index.js';
+
 // Тело логина: учётные данные пользователя.
 export const loginBodySchema = Type.Object({
   email: Type.String({ format: 'email', minLength: 3, maxLength: 320 }),
@@ -16,4 +18,11 @@ export const refreshBodySchema = Type.Object({
 export const tokenPairSchema = Type.Object({
   accessToken: Type.String(),
   refreshToken: Type.String(),
+});
+
+// Ответ логина: пара токенов + профиль пользователя (§5.6 спеки).
+// Type.Composite нет в typebox@1.3.4 — плоский Type.Object со spread'ом properties.
+export const loginResponseSchema = Type.Object({
+  ...tokenPairSchema.properties,
+  user: userViewSchema,
 });

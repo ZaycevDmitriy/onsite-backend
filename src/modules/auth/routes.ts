@@ -1,6 +1,11 @@
 import { errorEnvelopeSchema } from '@/shared/errors/index.js';
 
-import { loginBodySchema, refreshBodySchema, tokenPairSchema } from './schemas.js';
+import {
+  loginBodySchema,
+  loginResponseSchema,
+  refreshBodySchema,
+  tokenPairSchema,
+} from './schemas.js';
 
 import type { IAuthService } from './service.js';
 import type { FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
@@ -27,7 +32,7 @@ export const authRoutes: FastifyPluginAsyncTypebox<IAuthRoutesOptions> =
           tags: ['auth'],
           body: loginBodySchema,
           response: {
-            200: tokenPairSchema,
+            200: loginResponseSchema,
             401: errorEnvelopeSchema,
             429: errorEnvelopeSchema,
           },

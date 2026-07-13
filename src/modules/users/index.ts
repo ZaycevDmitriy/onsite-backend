@@ -1,6 +1,7 @@
 // Публичный API модуля users: единственная точка импорта для соседей.
 export { UserRoleEnum } from './db-schema.js';
 export { usersRoutes, type IUsersRoutesOptions } from './routes.js';
+export { userViewSchema } from './schemas.js';
 export {
   createUser,
   findAuthRecordByEmail,
