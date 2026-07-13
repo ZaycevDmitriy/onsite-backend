@@ -1,3 +1,16 @@
+# [1.8.0](https://github.com/ZaycevDmitriy/onsite-backend/compare/v1.7.1...v1.8.0) (2026-07-13)
+
+
+### Bug Fixes
+
+* **auth:** брать isActive из записи пользователя в ответе логина ([deb5915](https://github.com/ZaycevDmitriy/onsite-backend/commit/deb5915e16c994fdd5eb60b6b1f0363a8e888279))
+
+
+### Features
+
+* **auth:** добавить профиль пользователя в ответ логина ([f21d94d](https://github.com/ZaycevDmitriy/onsite-backend/commit/f21d94db2d56c6fe0eebe37f5a3e019a68fbceb8))
+* **http:** эхо x-request-id в заголовке каждого ответа ([afe8017](https://github.com/ZaycevDmitriy/onsite-backend/commit/afe8017b515b4213ca5e564df128cf9ca356ce2b))
+
 ## [1.7.1](https://github.com/ZaycevDmitriy/onsite-backend/compare/v1.7.0...v1.7.1) (2026-07-12)
 
 
