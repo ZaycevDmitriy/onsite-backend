@@ -119,7 +119,8 @@
                   "type": "object",
                   "required": [
                     "accessToken",
-                    "refreshToken"
+                    "refreshToken",
+                    "user"
                   ],
                   "properties": {
                     "accessToken": {
@@ -127,6 +128,52 @@
                     },
                     "refreshToken": {
                       "type": "string"
+                    },
+                    "user": {
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "email",
+                        "role",
+                        "displayName",
+                        "isActive",
+                        "createdAt"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "email": {
+                          "type": "string"
+                        },
+                        "role": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "enum": [
+                                "dispatcher"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "technician"
+                              ]
+                            }
+                          ]
+                        },
+                        "displayName": {
+                          "type": "string"
+                        },
+                        "isActive": {
+                          "type": "boolean"
+                        },
+                        "createdAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        }
+                      }
                     }
                   }
                 }
@@ -198,6 +245,12 @@
                           "type": "string",
                           "enum": [
                             "email_taken"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "bad_request"
                           ]
                         },
                         {
@@ -294,6 +347,12 @@
                           "type": "string",
                           "enum": [
                             "email_taken"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "bad_request"
                           ]
                         },
                         {
@@ -446,6 +505,12 @@
                         {
                           "type": "string",
                           "enum": [
+                            "bad_request"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
                             "internal_error"
                           ]
                         },
@@ -537,6 +602,12 @@
                           "type": "string",
                           "enum": [
                             "email_taken"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "bad_request"
                           ]
                         },
                         {
@@ -665,6 +736,12 @@
                           "type": "string",
                           "enum": [
                             "email_taken"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "bad_request"
                           ]
                         },
                         {
@@ -803,6 +880,12 @@
                         {
                           "type": "string",
                           "enum": [
+                            "bad_request"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
                             "internal_error"
                           ]
                         },
@@ -894,6 +977,12 @@
                           "type": "string",
                           "enum": [
                             "email_taken"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "bad_request"
                           ]
                         },
                         {
@@ -1112,6 +1201,12 @@
                         {
                           "type": "string",
                           "enum": [
+                            "bad_request"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
                             "internal_error"
                           ]
                         },
@@ -1203,6 +1298,12 @@
                           "type": "string",
                           "enum": [
                             "email_taken"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "bad_request"
                           ]
                         },
                         {
@@ -1304,6 +1405,12 @@
                         {
                           "type": "string",
                           "enum": [
+                            "bad_request"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
                             "internal_error"
                           ]
                         },
@@ -1395,6 +1502,12 @@
                           "type": "string",
                           "enum": [
                             "email_taken"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "bad_request"
                           ]
                         },
                         {
@@ -1600,6 +1713,12 @@
                         {
                           "type": "string",
                           "enum": [
+                            "bad_request"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
                             "internal_error"
                           ]
                         },
@@ -1691,6 +1810,12 @@
                           "type": "string",
                           "enum": [
                             "email_taken"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "bad_request"
                           ]
                         },
                         {
@@ -1792,6 +1917,12 @@
                         {
                           "type": "string",
                           "enum": [
+                            "bad_request"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
                             "internal_error"
                           ]
                         },
@@ -1883,6 +2014,12 @@
                           "type": "string",
                           "enum": [
                             "email_taken"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "bad_request"
                           ]
                         },
                         {
@@ -2210,6 +2347,12 @@
                         {
                           "type": "string",
                           "enum": [
+                            "bad_request"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
                             "internal_error"
                           ]
                         },
@@ -2301,6 +2444,12 @@
                           "type": "string",
                           "enum": [
                             "email_taken"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "bad_request"
                           ]
                         },
                         {
@@ -2604,6 +2753,12 @@
                         {
                           "type": "string",
                           "enum": [
+                            "bad_request"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
                             "internal_error"
                           ]
                         },
@@ -2700,6 +2855,12 @@
                         {
                           "type": "string",
                           "enum": [
+                            "bad_request"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
                             "internal_error"
                           ]
                         },
@@ -2791,6 +2952,12 @@
                           "type": "string",
                           "enum": [
                             "email_taken"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "bad_request"
                           ]
                         },
                         {
@@ -3187,6 +3354,12 @@
                         {
                           "type": "string",
                           "enum": [
+                            "bad_request"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
                             "internal_error"
                           ]
                         },
@@ -3278,6 +3451,12 @@
                           "type": "string",
                           "enum": [
                             "email_taken"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "bad_request"
                           ]
                         },
                         {
@@ -3590,6 +3769,12 @@
                         {
                           "type": "string",
                           "enum": [
+                            "bad_request"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
                             "internal_error"
                           ]
                         },
@@ -3681,6 +3866,12 @@
                           "type": "string",
                           "enum": [
                             "email_taken"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "bad_request"
                           ]
                         },
                         {
@@ -3782,6 +3973,12 @@
                         {
                           "type": "string",
                           "enum": [
+                            "bad_request"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
                             "internal_error"
                           ]
                         },
@@ -3878,6 +4075,12 @@
                         {
                           "type": "string",
                           "enum": [
+                            "bad_request"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
                             "internal_error"
                           ]
                         },
@@ -3969,6 +4172,12 @@
                           "type": "string",
                           "enum": [
                             "email_taken"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "bad_request"
                           ]
                         },
                         {
@@ -4241,6 +4450,12 @@
                         {
                           "type": "string",
                           "enum": [
+                            "bad_request"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
                             "internal_error"
                           ]
                         },
@@ -4332,6 +4547,12 @@
                           "type": "string",
                           "enum": [
                             "email_taken"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "bad_request"
                           ]
                         },
                         {
@@ -4433,6 +4654,12 @@
                         {
                           "type": "string",
                           "enum": [
+                            "bad_request"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
                             "internal_error"
                           ]
                         },
@@ -4529,6 +4756,12 @@
                         {
                           "type": "string",
                           "enum": [
+                            "bad_request"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
                             "internal_error"
                           ]
                         },
@@ -4620,6 +4853,12 @@
                           "type": "string",
                           "enum": [
                             "email_taken"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "bad_request"
                           ]
                         },
                         {
@@ -4945,6 +5184,12 @@
                         {
                           "type": "string",
                           "enum": [
+                            "bad_request"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
                             "internal_error"
                           ]
                         },
@@ -5041,6 +5286,12 @@
                         {
                           "type": "string",
                           "enum": [
+                            "bad_request"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
                             "internal_error"
                           ]
                         },
@@ -5132,6 +5383,12 @@
                           "type": "string",
                           "enum": [
                             "email_taken"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "bad_request"
                           ]
                         },
                         {
@@ -5402,6 +5659,12 @@
                         {
                           "type": "string",
                           "enum": [
+                            "bad_request"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
                             "internal_error"
                           ]
                         },
@@ -5493,6 +5756,12 @@
                           "type": "string",
                           "enum": [
                             "email_taken"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "bad_request"
                           ]
                         },
                         {
@@ -5594,6 +5863,12 @@
                         {
                           "type": "string",
                           "enum": [
+                            "bad_request"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
                             "internal_error"
                           ]
                         },
@@ -5685,6 +5960,12 @@
                           "type": "string",
                           "enum": [
                             "email_taken"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "bad_request"
                           ]
                         },
                         {
@@ -5786,6 +6067,12 @@
                         {
                           "type": "string",
                           "enum": [
+                            "bad_request"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
                             "internal_error"
                           ]
                         },
@@ -5877,6 +6164,12 @@
                           "type": "string",
                           "enum": [
                             "email_taken"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "bad_request"
                           ]
                         },
                         {
@@ -6015,6 +6308,12 @@
                         {
                           "type": "string",
                           "enum": [
+                            "bad_request"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
                             "internal_error"
                           ]
                         },
@@ -6106,6 +6405,12 @@
                           "type": "string",
                           "enum": [
                             "email_taken"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "bad_request"
                           ]
                         },
                         {
@@ -6495,6 +6800,12 @@
                         {
                           "type": "string",
                           "enum": [
+                            "bad_request"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
                             "internal_error"
                           ]
                         },
@@ -6586,6 +6897,12 @@
                           "type": "string",
                           "enum": [
                             "email_taken"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "bad_request"
                           ]
                         },
                         {
@@ -7019,6 +7336,12 @@
                         {
                           "type": "string",
                           "enum": [
+                            "bad_request"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
                             "internal_error"
                           ]
                         },
@@ -7115,6 +7438,12 @@
                         {
                           "type": "string",
                           "enum": [
+                            "bad_request"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
                             "internal_error"
                           ]
                         },
@@ -7206,6 +7535,12 @@
                           "type": "string",
                           "enum": [
                             "email_taken"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "bad_request"
                           ]
                         },
                         {
