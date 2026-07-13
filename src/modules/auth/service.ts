@@ -200,8 +200,7 @@ export const createAuthService = (options: IAuthServiceOptions): IAuthService =>
         email: record.email,
         role: record.role,
         displayName: record.displayName,
-        // Неактивный не проходит passwordValid выше — на этом этапе всегда true.
-        isActive: true,
+        isActive: record.isActive,
         createdAt: record.createdAt.toISOString(),
       };
 
