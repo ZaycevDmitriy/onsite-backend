@@ -51,7 +51,7 @@ S3_SECRET_KEY=minioadmin \
 
 ## Аутентификация
 
-- `POST /v1/auth/login` — логин по email/паролю, ответ — пара `accessToken` (JWT RS256, TTL `ACCESS_TOKEN_TTL_SEC`, по умолчанию 15 мин) + `refreshToken` (непрозрачный, TTL `REFRESH_TOKEN_TTL_SEC`, по умолчанию 30 дней). 5 неудач подряд — 429 на 15 минут.
+- `POST /v1/auth/login` — логин по email/паролю, ответ — пара `accessToken` (JWT RS256, TTL `ACCESS_TOKEN_TTL_SEC`, по умолчанию 15 мин) + `refreshToken` (непрозрачный, TTL `REFRESH_TOKEN_TTL_SEC`, по умолчанию 30 дней) + профиль `user` (`id`, `email`, `role`, `displayName`, `isActive`, `createdAt`). 5 неудач подряд — 429 на 15 минут.
 - `POST /v1/auth/refresh` — ротация: старый токен гаснет, повторное использование погашенного отзывает всю семью сессий.
 - `POST /v1/auth/logout` — отзыв семьи refresh-сессий.
 - `POST /v1/users`, `PATCH /v1/users/:id` — управление аккаунтами (только роль `dispatcher`); сброс пароля отзывает все refresh-сессии пользователя; деактивация действует немедленно; диспетчер не может деактивировать сам себя.
@@ -119,6 +119,8 @@ S3_SECRET_KEY=minioadmin \
 | `npm run db:generate`       | Сгенерировать миграцию из Drizzle-схем                |
 | `npm run openapi:print`     | Напечатать OpenAPI-спеку в stdout                     |
 | `npm run openapi:validate`  | Проверить спеку против схемы OpenAPI 3.1              |
+
+Снапшот спеки — `openapi.json` в корне репозитория; CI проверяет, что он не разошёлся с кодом. После изменения схем: `npm run openapi:print --silent > openapi.json`.
 
 ## Демо-учётки (сид)
 
