@@ -30,6 +30,7 @@ import { errorHandler, notFoundHandler } from '@/shared/errors/index.js';
 import {
   authPlugin,
   buildLoggerOptions,
+  echoRequestId,
   genReqId,
   metricsPlugin,
   openapiPlugin,
@@ -58,6 +59,9 @@ export const buildApp = async (config: IAppConfig): Promise<FastifyInstance> => 
   const app = Fastify(options).withTypeProvider<TypeBoxTypeProvider>();
 
   app.log.debug({ nodeEnv: config.nodeEnv }, 'инициализация приложения');
+
+  // Эхо requestId в каждый ответ (включая ошибки и 404) — сквозная корреляция клиент ↔ логи.
+  app.addHook('onRequest', echoRequestId);
 
   // contentSecurityPolicy отключён только для Swagger UI на /docs.
   await app.register(helmet, { contentSecurityPolicy: false });

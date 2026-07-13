@@ -106,7 +106,7 @@ describe('buildApp: конверт ошибок', () => {
     expect(response.json()).toEqual({ code: 'not_found', message: 'Route not found' });
   });
 
-  it('пробрасывает валидный x-request-id', async () => {
+  it('пробрасывает валидный x-request-id и эхает его в заголовок ответа', async () => {
     const id = '018f2c3a-9c1e-7abc-8def-0123456789ab';
     const response = await app.inject({
       method: 'GET',
@@ -115,6 +115,32 @@ describe('buildApp: конверт ошибок', () => {
     });
 
     expect(response.statusCode).toBe(404);
+    expect(response.headers['x-request-id']).toBe(id);
+  });
+
+  it('невалидный x-request-id заменяется сгенерированным UUID в ответе', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/nope',
+      headers: { 'x-request-id': 'not-a-uuid\r\nX-Injected: 1' },
+    });
+
+    const echoed = response.headers['x-request-id'];
+    expect(echoed).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
+    );
+    expect(response.headers).not.toHaveProperty('x-injected');
+  });
+
+  it('x-request-id присутствует и в успешном ответе', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/test/echo',
+      payload: { value: 42 },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.headers['x-request-id']).toBeDefined();
   });
 
   it(

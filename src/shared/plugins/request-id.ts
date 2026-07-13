@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
-import type { RawRequestDefaultExpression } from 'fastify';
+import type { onRequestHookHandler, RawRequestDefaultExpression } from 'fastify';
 
 // Заголовок, через который клиент может пробросить сквозной идентификатор запроса.
 export const REQUEST_ID_HEADER = 'x-request-id';
@@ -21,4 +21,13 @@ export const genReqId = (req: RawRequestDefaultExpression): string => {
   }
 
   return randomUUID();
+};
+
+/**
+ * onRequest-хук: эхо requestId в заголовок ответа. Клиент прикладывает id из ответа
+ * к сообщению об инциденте — запись в pino-логах находится по этому же requestId.
+ */
+export const echoRequestId: onRequestHookHandler = (request, reply, done) => {
+  reply.header(REQUEST_ID_HEADER, request.id);
+  done();
 };

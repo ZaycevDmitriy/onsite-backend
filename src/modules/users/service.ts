@@ -31,8 +31,11 @@ export interface IUserView {
 // Запись для логина: единственное место, где passwordHash покидает модуль.
 export interface IUserAuthRecord {
   id: string;
+  email: string;
   role: UserRoleEnum;
+  displayName: string;
   isActive: boolean;
+  createdAt: Date;
   passwordHash: string;
 }
 
@@ -121,7 +124,15 @@ export const findAuthRecordByEmail = async (
     return null;
   }
 
-  return { id: row.id, role: row.role, isActive: row.isActive, passwordHash: row.passwordHash };
+  return {
+    id: row.id,
+    email: row.email,
+    role: row.role,
+    displayName: row.displayName,
+    isActive: row.isActive,
+    createdAt: row.createdAt,
+    passwordHash: row.passwordHash,
+  };
 };
 
 /** Создаёт пользователя: занятый email → 409 email_taken. */

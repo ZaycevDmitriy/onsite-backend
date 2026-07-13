@@ -92,3 +92,10 @@ jobs:
 
       - name: Валидация OpenAPI
         run: npm run openapi:validate
+
+      # Снапшот openapi.json в корне обязан совпадать с генерацией из кода —
+      # иначе он молча дрейфует. При падении: npm run openapi:print --silent > openapi.json.
+      - name: Проверка дрейфа снапшота openapi.json
+        run: |
+          npm run openapi:print --silent > /tmp/openapi-regen.json
+          diff -u openapi.json /tmp/openapi-regen.json

@@ -59,14 +59,33 @@ describe.runIf(databaseUrl)('auth-флоу', () => {
     await app.close();
   });
 
-  it('верный логин → 200 с парой токенов (FR-01)', async () => {
+  it('верный логин → 200 с парой токенов и профилем пользователя (FR-01)', async () => {
     const user = await createTestUser();
     const response = await login(user.email, PASSWORD);
 
     expect(response.statusCode).toBe(200);
-    const body = response.json<{ accessToken: string; refreshToken: string }>();
+    const body = response.json<{
+      accessToken: string;
+      refreshToken: string;
+      user: {
+        id: string;
+        email: string;
+        role: string;
+        displayName: string;
+        isActive: boolean;
+        createdAt: string;
+        passwordHash?: string;
+      };
+    }>();
     expect(body.accessToken).toBeTruthy();
     expect(body.refreshToken).toBeTruthy();
+    expect(body.user.id).toBe(user.id);
+    expect(body.user.email).toBe(user.email);
+    expect(body.user.role).toBe('technician');
+    expect(body.user.displayName).toBe('Тестовый Пользователь');
+    expect(body.user.isActive).toBe(true);
+    expect(new Date(body.user.createdAt).toString()).not.toBe('Invalid Date');
+    expect(body.user.passwordHash).toBeUndefined();
   });
 
   it('неверный пароль и несуществующий email → одинаковый 401 invalid_credentials', async () => {
@@ -100,8 +119,14 @@ describe.runIf(databaseUrl)('auth-флоу', () => {
 
     const rotated = await refresh(loginBody.refreshToken);
     expect(rotated.statusCode).toBe(200);
-    const rotatedBody = rotated.json<{ accessToken: string; refreshToken: string }>();
+    const rotatedBody = rotated.json<{
+      accessToken: string;
+      refreshToken: string;
+      user?: unknown;
+    }>();
     expect(rotatedBody.refreshToken).not.toBe(loginBody.refreshToken);
+    // refresh контрактно не меняется: user отсутствует в ответе.
+    expect(rotatedBody.user).toBeUndefined();
 
     // Новый токен рабочий.
     const second = await refresh(rotatedBody.refreshToken);

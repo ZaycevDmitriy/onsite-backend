@@ -14,7 +14,7 @@ import {
   revokeSessionsByUserId,
 } from './repository.js';
 
-import type { UserRoleEnum } from '@/modules/users/index.js';
+import type { IUserView, UserRoleEnum } from '@/modules/users/index.js';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import type { FastifyBaseLogger } from 'fastify';
 
@@ -43,6 +43,11 @@ export interface ITokenPair {
   refreshToken: string;
 }
 
+// Ответ логина: пара токенов + профиль пользователя (§5.6 спеки).
+export interface ILoginResult extends ITokenPair {
+  user: IUserView;
+}
+
 export interface IAuthServiceOptions {
   db: NodePgDatabase;
   refreshTokenTtlSec: number;
@@ -51,7 +56,7 @@ export interface IAuthServiceOptions {
 }
 
 export interface IAuthService {
-  login: (email: string, password: string, logger: FastifyBaseLogger) => Promise<ITokenPair>;
+  login: (email: string, password: string, logger: FastifyBaseLogger) => Promise<ILoginResult>;
   refresh: (refreshToken: string, logger: FastifyBaseLogger) => Promise<ITokenPair>;
   logout: (refreshToken: string, logger: FastifyBaseLogger) => Promise<void>;
   revokeAllUserSessions: (userId: string, logger: FastifyBaseLogger) => Promise<void>;
@@ -190,7 +195,16 @@ export const createAuthService = (options: IAuthServiceOptions): IAuthService =>
       const pair = await issueTokenPair(record.id, record.role, randomUUID());
       logger.info({ userId: record.id }, 'логин успешен, выпущена пара токенов');
 
-      return pair;
+      const user: IUserView = {
+        id: record.id,
+        email: record.email,
+        role: record.role,
+        displayName: record.displayName,
+        isActive: record.isActive,
+        createdAt: record.createdAt.toISOString(),
+      };
+
+      return { ...pair, user };
     },
 
     async refresh(refreshToken, logger) {
