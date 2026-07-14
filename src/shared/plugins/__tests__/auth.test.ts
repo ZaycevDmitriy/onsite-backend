@@ -48,10 +48,10 @@ describe('authPlugin', () => {
       getActiveUser,
     });
 
-    app.get('/protected', { preHandler: [app.authenticate] }, (request) => request.user);
+    app.get('/protected', { onRequest: [app.authenticate] }, (request) => request.user);
     app.get(
       '/dispatcher-only',
-      { preHandler: [app.authenticate, app.requireRole('dispatcher')] },
+      { onRequest: [app.authenticate, app.requireRole('dispatcher')] },
       () => ({ ok: true }),
     );
     await app.ready();

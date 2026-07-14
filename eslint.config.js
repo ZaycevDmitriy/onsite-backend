@@ -12,6 +12,7 @@ export default tseslint.config(
       'drizzle/',
       'docs/',
       '.claude/',
+      '.agents/',
       '.ai-factory/',
     ],
   },

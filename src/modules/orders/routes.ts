@@ -39,7 +39,7 @@ export const ordersRoutes: FastifyPluginAsyncTypebox<IOrdersRoutesOptions> =
     app.get(
       '/v1/orders',
       {
-        preHandler: [app.authenticate],
+        onRequest: [app.authenticate],
         schema: {
           tags: ['orders'],
           security: [{ bearerAuth: [] }],
@@ -57,7 +57,7 @@ export const ordersRoutes: FastifyPluginAsyncTypebox<IOrdersRoutesOptions> =
     app.post(
       '/v1/orders',
       {
-        preHandler: dispatcherOnly,
+        onRequest: dispatcherOnly,
         schema: {
           tags: ['orders'],
           security: [{ bearerAuth: [] }],
@@ -80,7 +80,7 @@ export const ordersRoutes: FastifyPluginAsyncTypebox<IOrdersRoutesOptions> =
     app.get(
       '/v1/orders/:id',
       {
-        preHandler: [app.authenticate],
+        onRequest: [app.authenticate],
         schema: {
           tags: ['orders'],
           security: [{ bearerAuth: [] }],
@@ -99,7 +99,7 @@ export const ordersRoutes: FastifyPluginAsyncTypebox<IOrdersRoutesOptions> =
     app.patch(
       '/v1/orders/:id',
       {
-        preHandler: dispatcherOnly,
+        onRequest: dispatcherOnly,
         schema: {
           tags: ['orders'],
           security: [{ bearerAuth: [] }],
@@ -121,7 +121,7 @@ export const ordersRoutes: FastifyPluginAsyncTypebox<IOrdersRoutesOptions> =
     app.post(
       '/v1/orders/:id/assign',
       {
-        preHandler: dispatcherOnly,
+        onRequest: dispatcherOnly,
         schema: {
           tags: ['orders'],
           security: [{ bearerAuth: [] }],
@@ -151,7 +151,7 @@ export const ordersRoutes: FastifyPluginAsyncTypebox<IOrdersRoutesOptions> =
     app.post(
       '/v1/orders/:id/transition',
       {
-        preHandler: [app.authenticate],
+        onRequest: [app.authenticate],
         schema: {
           tags: ['orders'],
           security: [{ bearerAuth: [] }],

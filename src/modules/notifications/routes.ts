@@ -12,7 +12,7 @@ export const notificationsRoutes: FastifyPluginAsyncTypebox =
     app.put(
       '/v1/devices',
       {
-        preHandler: [app.authenticate],
+        onRequest: [app.authenticate],
         schema: {
           tags: ['notifications'],
           security: [{ bearerAuth: [] }],

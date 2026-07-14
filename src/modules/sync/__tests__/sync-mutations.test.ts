@@ -406,4 +406,29 @@ describe.runIf(databaseUrl && s3Endpoint)('sync mutations (FR-09/FR-10)', () => 
     const orderBRow = (await app.db.select().from(orders).where(eq(orders.id, orderB.id)))[0];
     expect(orderBRow?.status).toBe('New');
   });
+
+  // Auth-хуки — onRequest: аутентификация и роль проверяются до валидации тела,
+  // невалидное тело не должно маскировать 401/403 ответом 422.
+  it('невалидное тело без токена → 401, не 422', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/sync/mutations',
+      payload: { mutations: [] },
+    });
+
+    expect(response.statusCode).toBe(401);
+    expect(response.json<{ code: string }>().code).toBe('unauthorized');
+  });
+
+  it('невалидное тело под dispatcher → 403, не 422', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/sync/mutations',
+      headers: authHeaders(dispatcherToken),
+      payload: { mutations: [] },
+    });
+
+    expect(response.statusCode).toBe(403);
+    expect(response.json<{ code: string }>().code).toBe('forbidden');
+  });
 });

@@ -106,7 +106,7 @@ export const authPlugin = fp<IAuthPluginOptions>(
     });
 
     app.decorate('requireRole', (role: AuthRole) =>
-      // eslint-disable-next-line @typescript-eslint/require-await -- Сигнатура preHandler Fastify.
+      // eslint-disable-next-line @typescript-eslint/require-await -- Сигнатура onRequest-хука Fastify.
       async (request: FastifyRequest) => {
         if (request.user.role !== role) {
           request.log.debug(
