@@ -131,7 +131,6 @@ src/
   cli/                  # production entrypoints: migrate, create-first-user
 deploy/                 # Caddyfile, Prometheus config, backup scripts
 drizzle/                # SQL migrations
-docs/                   # deployment guide
 ```
 
 ## Getting Started
@@ -244,7 +243,8 @@ order's cursor.
 via Let's Encrypt) → API, PostgreSQL, MinIO, Prometheus (with a 5xx-rate alert rule), and daily
 backups of both `pg_dump` and the photo bucket. The `api` / `migrate` services use a prebuilt
 image from GHCR — no build on the VPS. The first dispatcher account is created with
-`create-first-user`. Details: `docs/deployment.md`, `deploy/`, and `.env.production.example`.
+`create-first-user`. Details: `deploy/` (Caddyfile, Prometheus config, backup scripts) and
+`.env.production.example`.
 
 ## Releases
 

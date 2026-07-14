@@ -199,8 +199,8 @@ Composition root — `src/app.ts` + `src/main.ts`.
 `compose.production.yml` — полный self-host стек: Caddy (reverse-proxy с авто-TLS через
 Let's Encrypt) → api, PostgreSQL, MinIO, Prometheus (алёрт на долю 5xx), ежедневные бэкапы
 `pg_dump` + бакета фото. `api`/`migrate` используют готовый образ из GHCR — сборка на VPS не
-нужна. Первый диспетчер заводится через `create-first-user`. Подробности — `docs/deployment.md`,
-`deploy/` и `.env.production.example`.
+нужна. Первый диспетчер заводится через `create-first-user`. Подробности — `deploy/` (Caddyfile,
+конфиг Prometheus, скрипты бэкапов) и `.env.production.example`.
 
 ## Команды
 
