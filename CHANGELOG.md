@@ -1,3 +1,12 @@
+## [1.8.1](https://github.com/ZaycevDmitriy/onsite-backend/compare/v1.8.0...v1.8.1) (2026-07-14)
+
+
+### Bug Fixes
+
+* **auth:** переносить auth-хуки с preHandler на onRequest ([967cff4](https://github.com/ZaycevDmitriy/onsite-backend/commit/967cff4252f104e1c0bf47542c05d4db0281980c))
+* **errors:** отдавать наружу message только собственных 4xx-ошибок Fastify ([2cde8d3](https://github.com/ZaycevDmitriy/onsite-backend/commit/2cde8d3562317866de6dbbaa20783323356f807d))
+* **errors:** уточнить семантику FST_-фильтра и warn-лог сторонних 4xx ([10aa7fd](https://github.com/ZaycevDmitriy/onsite-backend/commit/10aa7fd782694c5cf2236f7e4d9a06cb3c98b01e))
+
 # [1.8.0](https://github.com/ZaycevDmitriy/onsite-backend/compare/v1.7.1...v1.8.0) (2026-07-13)
 
 
