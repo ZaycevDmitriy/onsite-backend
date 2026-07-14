@@ -47,15 +47,24 @@ export const errorHandler = (
     return;
   }
 
-  // Собственные ошибки Fastify со статусом 4xx: сообщение фреймворка безопасно для клиента.
+  // Ошибки со статусом 4xx: статус сохраняется (клиентская ошибка не маскируется под 500),
+  // но message наружу уходит только у собственных ошибок Fastify (код FST_*) — сообщения
+  // сторонних библиотек могут содержать внутренние детали, им отдаётся статичный текст.
   if (typeof error.statusCode === 'number' && error.statusCode >= 400 && error.statusCode < 500) {
+    const isFastifyOwnError = typeof error.code === 'string' && error.code.startsWith('FST_');
+
     request.log.info(
-      { requestId: request.id, fastifyCode: error.code, statusCode: error.statusCode },
+      {
+        requestId: request.id,
+        fastifyCode: error.code,
+        statusCode: error.statusCode,
+        err: isFastifyOwnError ? undefined : error,
+      },
       'client error',
     );
     void reply.status(error.statusCode).send({
       code: FASTIFY_CLIENT_ERROR_CODES[error.statusCode] ?? ErrorCodeEnum.BadRequest,
-      message: error.message,
+      message: isFastifyOwnError ? error.message : 'Request cannot be processed',
     } satisfies IErrorEnvelope);
     return;
   }

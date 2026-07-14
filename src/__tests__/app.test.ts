@@ -29,6 +29,16 @@ describe('buildApp: конверт ошибок', () => {
     app.get('/test/boom', () => {
       throw new Error('секретная внутренняя ошибка');
     });
+    app.get('/test/library-4xx', () => {
+      // Имитация ошибки сторонней библиотеки: statusCode 4xx без кода FST_*.
+      const error = new Error('внутренняя деталь стороннего плагина') as Error & {
+        statusCode: number;
+        code: string;
+      };
+      error.statusCode = 400;
+      error.code = 'THIRD_PARTY_ERR';
+      throw error;
+    });
     app.get('/test/ip', (request) => ({ ip: request.ip }));
     await app.ready();
   });
@@ -97,6 +107,17 @@ describe('buildApp: конверт ошибок', () => {
       message: 'Internal server error',
     });
     expect(response.body).not.toContain('секретная');
+  });
+
+  it('4xx сторонней библиотеки (не FST_*) → статус сохраняется, message не утекает', async () => {
+    const response = await app.inject({ method: 'GET', url: '/test/library-4xx' });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toEqual({
+      code: 'bad_request',
+      message: 'Request cannot be processed',
+    });
+    expect(response.body).not.toContain('внутренняя деталь');
   });
 
   it('неизвестный маршрут → 404 not_found конвертом', async () => {
