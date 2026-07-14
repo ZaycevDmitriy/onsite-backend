@@ -33,9 +33,6 @@ coverage/
 !.vscode/launch.json
 .idea/
 
-# temp
-docs/
-
 # ai
 skills-lock.json
 .claude/

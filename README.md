@@ -282,6 +282,20 @@ description.
 - Refresh tokens are opaque DB rows, not JWTs — revocation and family tracking need server state
   anyway.
 
+## Documentation
+
+Detailed docs (in Russian) live in [`docs/`](docs/):
+
+| Guide                                                            | Description                                              |
+| ---------------------------------------------------------------- | -------------------------------------------------------- |
+| [Specification](docs/onsite-backend-spec.md)                     | Requirements, data model, API contract (source of truth) |
+| [PDR](docs/pdr.md)                                               | Goals, tasks, risks, and schedule                        |
+| [Implementation Phases](docs/implementation-phases.md)           | The 6 phases from M0 to v1.0                             |
+| [Deployment](docs/deployment.md)                                 | The self-host production stack and its decisions         |
+| [VPS Deployment Guide](docs/vps-deployment-guide.md)             | Step-by-step server setup from scratch                   |
+| [API Testing Guide](docs/api-testing-guide.md)                   | Manual verification of a deployed stack                  |
+| [OWASP API Top 10 Audit](docs/security-audit-owasp-api-top10.md) | Security audit performed before v1.0                     |
+
 ## Related Repository
 
 The mobile client: [field-service-crm](https://github.com/ZaycevDmitriy/field-service-crm) —
