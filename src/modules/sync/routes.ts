@@ -28,7 +28,7 @@ export const syncRoutes: FastifyPluginAsyncTypebox<ISyncRoutesOptions> =
     app.get(
       '/v1/sync/orders',
       {
-        preHandler: technicianOnly,
+        onRequest: technicianOnly,
         schema: {
           tags: ['sync'],
           security: [{ bearerAuth: [] }],
@@ -56,7 +56,7 @@ export const syncRoutes: FastifyPluginAsyncTypebox<ISyncRoutesOptions> =
     app.post(
       '/v1/sync/mutations',
       {
-        preHandler: technicianOnly,
+        onRequest: technicianOnly,
         schema: {
           tags: ['sync'],
           security: [{ bearerAuth: [] }],

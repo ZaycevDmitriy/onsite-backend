@@ -50,7 +50,7 @@ export const photosRoutes: FastifyPluginAsyncTypebox<IPhotosRoutesOptions> = asy
   app.post(
     '/v1/orders/:id/photos',
     {
-      preHandler: [app.authenticate],
+      onRequest: [app.authenticate],
       bodyLimit: options.maxFileSizeBytes + MULTIPART_BODY_LIMIT_OVERHEAD_BYTES,
       schema: {
         tags: ['photos'],
@@ -139,7 +139,7 @@ export const photosRoutes: FastifyPluginAsyncTypebox<IPhotosRoutesOptions> = asy
   app.get(
     '/v1/photos/:id/file',
     {
-      preHandler: [app.authenticate],
+      onRequest: [app.authenticate],
       schema: {
         tags: ['photos'],
         security: [{ bearerAuth: [] }],

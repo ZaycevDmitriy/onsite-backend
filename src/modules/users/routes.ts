@@ -28,7 +28,7 @@ export const usersRoutes: FastifyPluginAsyncTypebox<IUsersRoutesOptions> =
     app.post(
       '/v1/users',
       {
-        preHandler: dispatcherOnly,
+        onRequest: dispatcherOnly,
         schema: {
           tags: ['users'],
           security: [{ bearerAuth: [] }],
@@ -52,7 +52,7 @@ export const usersRoutes: FastifyPluginAsyncTypebox<IUsersRoutesOptions> =
     app.patch(
       '/v1/users/:id',
       {
-        preHandler: dispatcherOnly,
+        onRequest: dispatcherOnly,
         schema: {
           tags: ['users'],
           security: [{ bearerAuth: [] }],
