@@ -47,24 +47,34 @@ export const errorHandler = (
     return;
   }
 
-  // Ошибки со статусом 4xx: статус сохраняется (клиентская ошибка не маскируется под 500),
-  // но message наружу уходит только у собственных ошибок Fastify (код FST_*) — сообщения
-  // сторонних библиотек могут содержать внутренние детали, им отдаётся статичный текст.
+  // Ошибки со статусом 4xx: статус сохраняется (клиентская ошибка не маскируется под 500).
+  // Префикс FST_ покрывает собственные ошибки Fastify и плагины экосистемы на @fastify/error
+  // (например @fastify/multipart): их сообщения рассчитаны на клиента и уходят наружу.
+  // Сообщения прочих библиотек могут содержать внутренние детали — им отдаётся статичный текст.
   if (typeof error.statusCode === 'number' && error.statusCode >= 400 && error.statusCode < 500) {
-    const isFastifyOwnError = typeof error.code === 'string' && error.code.startsWith('FST_');
+    const isFastifyEcosystemError = typeof error.code === 'string' && error.code.startsWith('FST_');
 
-    request.log.info(
-      {
-        requestId: request.id,
-        fastifyCode: error.code,
-        statusCode: error.statusCode,
-        err: isFastifyOwnError ? undefined : error,
-      },
-      'client error',
-    );
+    if (isFastifyEcosystemError) {
+      request.log.info(
+        { requestId: request.id, fastifyCode: error.code, statusCode: error.statusCode },
+        'client error',
+      );
+    } else {
+      // Warn без объекта ошибки: сторонний 4xx — редкость, достойная внимания, но stack
+      // на каждый такой запрос в логах не нужен; code и message достаточно для диагностики.
+      request.log.warn(
+        {
+          requestId: request.id,
+          errorCode: error.code,
+          errorMessage: error.message,
+          statusCode: error.statusCode,
+        },
+        'client error (message masked)',
+      );
+    }
     void reply.status(error.statusCode).send({
       code: FASTIFY_CLIENT_ERROR_CODES[error.statusCode] ?? ErrorCodeEnum.BadRequest,
-      message: isFastifyOwnError ? error.message : 'Request cannot be processed',
+      message: isFastifyEcosystemError ? error.message : 'Request cannot be processed',
     } satisfies IErrorEnvelope);
     return;
   }
